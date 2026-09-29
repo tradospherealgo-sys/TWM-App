@@ -67,13 +67,18 @@ export default async function AdminDashboardPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Link href="/admin/signals">
+            <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-950/80 text-blue-300 border border-blue-800 flex items-center gap-1.5 hover:bg-blue-900/60 transition-colors">
+              Signals Desk <ArrowRight className="w-3.5 h-3.5" />
+            </span>
+          </Link>
           <Link href="/admin/system-health">
             <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-950/80 text-emerald-300 border border-emerald-800 flex items-center gap-1.5 hover:bg-emerald-900/60 transition-colors">
               <ShieldCheck className="w-4 h-4 text-emerald-400" /> System Health
             </span>
           </Link>
           <Link href="/admin/integrations">
-            <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-950/80 text-blue-300 border border-blue-800 flex items-center gap-1.5 hover:bg-blue-900/60 transition-colors">
+            <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700 flex items-center gap-1.5 hover:bg-slate-700 transition-colors">
               Integrations Hub <ArrowRight className="w-3.5 h-3.5" />
             </span>
           </Link>

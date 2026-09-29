@@ -33,6 +33,7 @@ export function EmployeeNav({ employeeName = 'Employee' }: { employeeName?: stri
     { label: 'Tasks', href: '/employee/tasks', icon: CheckSquare },
     { label: 'Follow-ups', href: '/employee/followups', icon: PhoneCall },
     { label: 'Applications', href: '/employee/applications', icon: FileSpreadsheet },
+    { label: 'Signals', href: '/employee/signals', icon: Sparkles },
     { label: 'Support Desk', href: '/employee/support', icon: MessageSquare },
     { label: 'Knowledge & SOPs', href: '/employee/knowledge', icon: BookOpen },
     { label: 'AI Copilot', href: '/employee/copilot', icon: Sparkles },

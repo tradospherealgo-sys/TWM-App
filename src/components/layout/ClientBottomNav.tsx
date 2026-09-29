@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, TrendingUp, PieChart, ShieldCheck, Landmark, User } from 'lucide-react';
+import { Home, TrendingUp, Radio, PieChart, ShieldCheck, User } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export function ClientBottomNav() {
@@ -12,9 +12,9 @@ export function ClientBottomNav() {
   const navItems = [
     { label: 'Home', href: '/home', icon: Home },
     { label: 'Markets', href: '/markets', icon: TrendingUp },
+    { label: 'Signals', href: '/signals', icon: Radio },
     { label: 'Invest', href: '/invest', icon: PieChart },
     { label: 'Protect', href: '/protect', icon: ShieldCheck },
-    { label: 'Borrow', href: '/borrow', icon: Landmark },
     { label: 'Account', href: '/account', icon: User },
   ];
 

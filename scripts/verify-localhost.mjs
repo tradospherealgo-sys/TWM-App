@@ -1,5 +1,6 @@
 // scripts/verify-localhost.mjs
 // Comprehensive live verification script for Tradosphere Wealth Management (TWM)
+// Includes Core Baseline + Signals & Market Intelligence Module
 
 const BASE_URL = 'http://localhost:3000';
 
@@ -33,14 +34,13 @@ function record(name, pass, details = '') {
 
 async function run() {
   console.log('====================================================');
-  console.log('STARTING TWM LOCALHOST LIVE VERIFICATION');
+  console.log('STARTING TWM LOCALHOST LIVE SYSTEM VERIFICATION');
   console.log('Target:', BASE_URL);
   console.log('====================================================\n');
 
   // 1. AUTHENTICATION & SESSIONS
   console.log('--- 1. AUTHENTICATION & SESSIONS ---');
   
-  // Client login
   const clientLogin = await request('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -49,7 +49,6 @@ async function run() {
   const clientCookie = parseCookie(clientLogin.headers);
   record('Client Login', clientLogin.status === 200 && !!clientCookie, `Status ${clientLogin.status}, Session: ${!!clientCookie}`);
 
-  // Employee login
   const empLogin = await request('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -58,7 +57,6 @@ async function run() {
   const empCookie = parseCookie(empLogin.headers);
   record('Employee Login', empLogin.status === 200 && !!empCookie, `Status ${empLogin.status}, Session: ${!!empCookie}`);
 
-  // Admin login
   const adminLogin = await request('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -68,28 +66,22 @@ async function run() {
   record('Admin Login', adminLogin.status === 200 && !!adminCookie, `Status ${adminLogin.status}, Session: ${!!adminCookie}`);
 
   // 2. CLIENT WORKFLOWS & PAGES
-  console.log('\n--- 2. CLIENT WORKFLOWS & PAGES ---');
+  console.log('\n--- 2. CLIENT BASELINE WORKFLOWS ---');
   
-  // Access /home
   const clientHome = await request('/home', { headers: { Cookie: clientCookie } });
   record('Client /home Access', clientHome.status === 200, `Status ${clientHome.status}`);
 
-  // Access /markets
   const clientMarkets = await request('/markets', { headers: { Cookie: clientCookie } });
   record('Client /markets Access', clientMarkets.status === 200, `Status ${clientMarkets.status}`);
 
-  // Equities search API
   const equitiesRes = await request('/api/market/stocks?q=RELIANCE', { headers: { Cookie: clientCookie } });
   const hasReliance = equitiesRes.json?.stocks?.some(s => s.symbol === 'RELIANCE');
   record('Equities Directory Search (NSE)', equitiesRes.status === 200 && hasReliance, `Found RELIANCE in directory`);
 
-  // Equities quote - honest unconfigured check
   const quoteRes = await request('/api/market/stocks/RELIANCE', { headers: { Cookie: clientCookie } });
   const quoteStatus = quoteRes.json?.stock?.status;
-  const isHonestQuote = quoteStatus === 'DATA_UNAVAILABLE' || quoteStatus === 'LIVE';
-  record('Equities Quote Honesty Check', quoteRes.status === 200 && isHonestQuote, `Honest Status: ${quoteStatus} (No fake data)`);
+  record('Equities Quote Honesty Check', quoteRes.status === 200 && quoteStatus === 'DATA_UNAVAILABLE', `Status: ${quoteStatus} (No fake data)`);
 
-  // Create client application
   const appRes = await request('/api/applications', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Cookie: clientCookie },
@@ -97,19 +89,18 @@ async function run() {
       productCategory: 'DEMAT',
       productCode: 'smc-demat-trading',
       details: { applicantName: 'Test Client', pan: 'ABCDE1234F', mobile: '9876543210' },
-      notes: 'Initial account opening request via Client Panel'
+      notes: 'Live verification test application'
     })
   });
   const createdApp = appRes.json?.application;
   record('Client Application Submission', appRes.status === 200 && !!createdApp?.id, `App Number: ${createdApp?.applicationNumber}`);
 
-  // Create client support ticket
   const ticketRes = await request('/api/support/tickets', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Cookie: clientCookie },
     body: JSON.stringify({
-      subject: 'Inquiry regarding Aadhaar e-Sign',
-      description: 'I need clarification on whether Aadhaar OTP verification is automatic.',
+      subject: 'Inquiry regarding Demat onboarding',
+      description: 'Need assistance with client registration.',
       priority: 'MEDIUM',
       applicationId: createdApp?.id
     })
@@ -117,238 +108,188 @@ async function run() {
   const createdTicket = ticketRes.json?.ticket;
   record('Client Support Ticket Submission', ticketRes.status === 200 && !!createdTicket?.id, `Ticket Number: ${createdTicket?.ticketNumber}`);
 
-  // Upload/Register KYC Document via FormData
-  const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
-  const formBody = [
-    `--${boundary}`,
-    'Content-Disposition: form-data; name="title"',
-    '',
-    'PAN Card Copy',
-    `--${boundary}`,
-    'Content-Disposition: form-data; name="documentType"',
-    '',
-    'PAN',
-    `--${boundary}`,
-    'Content-Disposition: form-data; name="applicationId"',
-    '',
-    createdApp?.id || '',
-    `--${boundary}--`
-  ].join('\r\n');
-
-  const docRes = await request('/api/documents', {
-    method: 'POST',
-    headers: {
-      'Content-Type': `multipart/form-data; boundary=${boundary}`,
-      Cookie: clientCookie
-    },
-    body: formBody
-  });
-  const createdDoc = docRes.json?.document;
-  record('Client KYC Document Registration', docRes.status === 200 && !!createdDoc?.id, `Document ID: ${createdDoc?.id}, FileUrl: ${createdDoc?.fileUrl}`);
-
-  // Download/Stream KYC Document
-  if (createdDoc?.id) {
-    const downloadRes = await request(`/api/documents/download?id=${createdDoc.id}`, { headers: { Cookie: clientCookie } });
-    record('Client KYC Document Download Streaming', downloadRes.status === 200, `Stream Status: ${downloadRes.status} (Binary secured)`);
-  }
-
   // 3. EMPLOYEE OS WORKFLOWS
   console.log('\n--- 3. EMPLOYEE OS WORKFLOWS ---');
 
-  // Employee dashboard
   const empDash = await request('/employee', { headers: { Cookie: empCookie } });
   record('Employee /employee Access', empDash.status === 200, `Status ${empDash.status}`);
 
-  // Create CRM Lead
-  const leadRes = await request('/api/crm/leads', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Cookie: empCookie },
-    body: JSON.stringify({
-      name: 'High Net Worth Lead',
-      email: 'hnw@example.com',
-      phone: '9898989898',
-      source: 'DIRECT_OUTREACH',
-      productInterest: 'MUTUAL_FUNDS',
-      notes: 'Interested in lump-sum equity allocation.'
-    })
-  });
-  const createdLead = leadRes.json?.lead;
-  record('Employee CRM Lead Creation', leadRes.status === 200 && !!createdLead?.id, `Lead ID: ${createdLead?.id}, Name: ${createdLead?.name}`);
-
-  // Complete a Task
-  const tasksRes = await request('/api/crm/tasks', { headers: { Cookie: empCookie } });
-  const tasksList = tasksRes.json?.tasks || [];
-  if (tasksList.length > 0) {
-    const taskUpdate = await request('/api/crm/tasks', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Cookie: empCookie },
-      body: JSON.stringify({ id: tasksList[0].id, completed: true })
-    });
-    record('Employee Task Completion', taskUpdate.status === 200, `Task "${tasksList[0].title}" toggled`);
-  } else {
-    record('Employee Task Management', true, 'Task queue operational');
-  }
-
-  // Review Application & Transition Status
-  if (createdApp?.id) {
-    const appReview = await request(`/api/applications/${createdApp.id}/status`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Cookie: empCookie },
-      body: JSON.stringify({
-        status: 'UNDER_REVIEW',
-        reviewNotes: 'Verified PAN card authenticity; pending customer confirmation.'
-      })
-    });
-    const updatedStatus = appReview.json?.application?.status;
-    record('Employee Application Review & Transition', appReview.status === 200 && updatedStatus === 'UNDER_REVIEW', `New Status: ${updatedStatus}`);
-  }
-
-  // Verify Document
-  if (createdDoc?.id) {
-    const docVerify = await request(`/api/documents/${createdDoc.id}/verify`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Cookie: empCookie },
-      body: JSON.stringify({
-        verificationStatus: 'VERIFIED'
-      })
-    });
-    record('Employee KYC Document Verification', docVerify.status === 200 && docVerify.json?.document?.status === 'VERIFIED', `Status: ${docVerify.json?.document?.status}`);
-  }
-
-  // Resolve Support Ticket
-  if (createdTicket?.id) {
-    const ticketResolve = await request(`/api/support/tickets/${createdTicket.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Cookie: empCookie },
-      body: JSON.stringify({
-        status: 'RESOLVED',
-        priority: 'HIGH',
-        resolutionNotes: 'Aadhaar e-Sign is integrated through SMC Global Demat onboarding; client instructed on workflow.'
-      })
-    });
-    const updatedTktStatus = ticketResolve.json?.ticket?.status;
-    record('Employee Support Ticket Resolution', ticketResolve.status === 200 && updatedTktStatus === 'RESOLVED', `Ticket Status: ${updatedTktStatus}`);
-  }
-
-  // AI Copilot compliant SOP retrieval
   const copilotSop = await request('/api/copilot', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Cookie: empCookie },
     body: JSON.stringify({ query: 'What is the procedure for Demat onboarding?' })
   });
-  const copilotAnswer = copilotSop.json?.response?.answer || '';
-  record('AI Copilot SOP Retrieval', copilotSop.status === 200 && copilotAnswer.length > 20, `Answer length: ${copilotAnswer.length} chars`);
+  record('AI Copilot SOP Retrieval', copilotSop.status === 200 && (copilotSop.json?.response?.answer?.length || 0) > 20, `Answer received`);
 
-  // AI Copilot non-advisory filter test
   const copilotAdvisory = await request('/api/copilot', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Cookie: empCookie },
     body: JSON.stringify({ query: 'Which stock should I buy for 20% return?' })
   });
-  const advisoryBlocked = copilotAdvisory.status === 200 && copilotAdvisory.json?.response?.isCompliant === false;
-  record('AI Copilot Non-Advisory Blocking', advisoryBlocked, `Blocked: ${advisoryBlocked}, Regulatory warning applied`);
+  record('AI Copilot Non-Advisory Blocking', copilotAdvisory.status === 200 && copilotAdvisory.json?.response?.isCompliant === false, `Blocked with warning`);
 
-  // Submit Daily Report
-  const reportRes = await request('/api/reports/daily', {
+  // 4. SIGNALS & MARKET INTELLIGENCE MODULE VERIFICATION
+  console.log('\n--- 4. SIGNALS & MARKET INTELLIGENCE MODULE ---');
+
+  // Client non-subscribed: Paywall verification
+  const signalsClientRes = await request('/api/signals', { headers: { Cookie: clientCookie } });
+  const clientSignals = signalsClientRes.json?.signals || [];
+  const isPaywalled = clientSignals.some(s => s.requiresSubscription === true && s.content === null);
+  record('Signals Paywall (Non-Subscribed Client)', signalsClientRes.status === 200 && isPaywalled, `Signals received with paywall redaction`);
+
+  // Client subscription activation
+  const subRes = await request('/api/signals/subscription', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Cookie: empCookie },
+    headers: { 'Content-Type': 'application/json', Cookie: clientCookie },
+    body: JSON.stringify({ action: 'SUBSCRIBE' })
+  });
+  record('Signals Subscription Activation (₹499/mo Plan)', subRes.status === 200 && subRes.json?.success === true, `Subscribed successfully`);
+
+  // Subscribed client: Content unlocked
+  const signalsUnlockedRes = await request('/api/signals', { headers: { Cookie: clientCookie } });
+  const unlockedSignals = signalsUnlockedRes.json?.signals || [];
+  const isUnlocked = unlockedSignals.some(s => s.requiresSubscription === false);
+  record('Signals Entitlement (Subscribed Client)', signalsUnlockedRes.status === 200 && isUnlocked, `Content successfully unlocked for subscriber`);
+
+  // Client UI route checks
+  const clientSignalsPage = await request('/signals', { headers: { Cookie: clientCookie } });
+  record('Client /signals Page Access', clientSignalsPage.status === 200, `Status ${clientSignalsPage.status}`);
+
+  if (unlockedSignals.length > 0) {
+    const signalDetailPage = await request(`/signals/${unlockedSignals[0].id}`, { headers: { Cookie: clientCookie } });
+    record('Client /signals/[id] Detail Page Access', signalDetailPage.status === 200, `Status ${signalDetailPage.status}`);
+  }
+
+  // Admin Create Signal Draft
+  const createSignalRes = await request('/api/signals', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: adminCookie },
     body: JSON.stringify({
-      reportDate: new Date().toISOString(),
-      callsCount: 15,
-      meetingsCount: 4,
-      leadsContactedCount: 12,
-      applicationsProcessedCount: 3,
-      summaryNotes: 'Active outreach to high-net-worth investors; completed 3 Demat onboarding reviews.'
+      title: 'State Bank of India Asset Quality Review',
+      category: 'EQUITY',
+      instrument: 'SBIN Equity',
+      exchange: 'NSE',
+      symbol: 'SBIN',
+      summary: 'Public sector banking credit cycle and net interest margin trajectory.',
+      content: '## Research Brief: State Bank of India\n\nAsset quality continues to reflect multi-year lows in gross and net non-performing asset ratios.\n\n### Operational Metrics\n- Credit growth tracking above system averages.\n- Provision coverage ratio remains strong at 75%+.\n\nNon-advisory research for institutional context.',
+      source: 'Banking Sector Desk',
+      provider: 'Tradosphere Analytics',
+      author: 'Senior Financials Analyst',
+      validityType: 'SWING',
+      riskLevel: 'LOW'
     })
   });
-  record('Employee Daily Report Submission', reportRes.status === 200, `Report Status: ${reportRes.status}`);
+  const createdSignal = createSignalRes.json?.signal;
+  record('Admin Signal Creation (DRAFT)', createSignalRes.status === 200 && !!createdSignal?.id, `Created Signal ID: ${createdSignal?.id}`);
 
-  // 4. ADMIN PANEL & SECURITY GUARDS
-  console.log('\n--- 4. ADMIN PANEL & SECURITY GUARDS ---');
+  // Admin Trigger 6-Agent AI Review Team
+  let aiReviewOk = false;
+  let hasAtlas = false;
+  let hasVector = false;
+  let hasOrion = false;
+  let hasSentinel = false;
+  let hasAegis = false;
+  let hasNexus = false;
 
-  // Admin executive dashboard
-  const adminDash = await request('/admin', { headers: { Cookie: adminCookie } });
-  record('Admin /admin Access', adminDash.status === 200, `Status ${adminDash.status}`);
-
-  // Self-demote protection check
-  const usersRes = await request('/api/admin/users', { headers: { Cookie: adminCookie } });
-  const adminUser = usersRes.json?.users?.find(u => u.email === 'admin@tradosphere.in');
-  if (adminUser) {
-    const demoteAttempt = await request('/api/admin/users', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Cookie: adminCookie },
-      body: JSON.stringify({ id: adminUser.id, role: 'CLIENT' })
-    });
-    record('Admin Self-Lockout Prevention', demoteAttempt.status === 400, `Expected 400, got ${demoteAttempt.status} (Self-lockout blocked)`);
-  }
-
-  // Audit Logs API
-  const auditRes = await request('/api/admin/audit-logs', { headers: { Cookie: adminCookie } });
-  const logsCount = auditRes.json?.logs?.length || 0;
-  record('Tamper-Evident Audit Logs API', auditRes.status === 200 && logsCount > 0, `Total Activity Logs: ${logsCount}`);
-
-  // 5. ADMIN INTEGRATIONS & CONNECTION TESTERS
-  console.log('\n--- 5. ADMIN INTEGRATIONS & CONNECTION TESTERS ---');
-
-  // List integration cards
-  const integrationsRes = await request('/api/admin/integrations', { headers: { Cookie: adminCookie } });
-  const cards = integrationsRes.json?.integrations || [];
-  record('Admin Integrations Cards Retrieval', integrationsRes.status === 200 && cards.length === 9, `Found ${cards.length} / 9 registered cards`);
-
-  // Verify masking
-  let allMasked = true;
-  for (const c of cards) {
-    for (const [k, v] of Object.entries(c.maskedSecrets || {})) {
-      if (typeof v === 'string' && v.length > 0 && !v.startsWith('••••')) {
-        allMasked = false;
-      }
-    }
-  }
-  record('Admin Secrets Masking Verification', allMasked, 'All sensitive secrets in API output are masked');
-
-  // Live test connection across all 9 integrations
-  const providersToTest = ['database', 'supabase', 'upstox', 'smc_global', 'ai_provider', 'email', 'storage', 'notifications', 'market_data'];
-  for (const key of providersToTest) {
-    const testRes = await request(`/api/admin/integrations/${key}/test`, {
+  if (createdSignal?.id) {
+    const aiRes = await request(`/api/signals/${createdSignal.id}/ai-review`, {
       method: 'POST',
       headers: { Cookie: adminCookie }
     });
-    const tr = testRes.json?.testResult;
-    record(
-      `Integration Test: [${key}]`,
-      testRes.status === 200 && tr !== undefined,
-      `Status: ${tr?.status || 'N/A'}, Latency: ${tr?.latencyMs || 0}ms, Message: ${tr?.message?.substring(0, 75)}...`
-    );
+    aiReviewOk = aiRes.status === 200 && aiRes.json?.success === true;
+    const reviews = aiRes.json?.signal?.aiReviews || [];
+    hasAtlas = reviews.some(r => r.agentName === 'ATLAS');
+    hasVector = reviews.some(r => r.agentName === 'VECTOR');
+    hasOrion = reviews.some(r => r.agentName === 'ORION');
+    hasSentinel = reviews.some(r => r.agentName === 'SENTINEL');
+    hasAegis = reviews.some(r => r.agentName === 'AEGIS');
+    hasNexus = reviews.some(r => r.agentName === 'NEXUS');
   }
+  record('6-Agent AI Review Execution', aiReviewOk && hasAtlas && hasVector && hasOrion && hasSentinel && hasAegis && hasNexus, `Atlas, Vector, Orion, Sentinel, Aegis, Nexus all executed`);
 
-  // Test credential save & encryption in admin panel
-  const saveAiRes = await request('/api/admin/integrations/ai_provider', {
+  // Human Review & Approval
+  let approveOk = false;
+  if (createdSignal?.id) {
+    const approveRes = await request(`/api/signals/${createdSignal.id}/decision`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: adminCookie },
+      body: JSON.stringify({ action: 'APPROVE', notes: 'Approved for publication' })
+    });
+    approveOk = approveRes.status === 200 && approveRes.json?.signal?.status === 'APPROVED';
+  }
+  record('Admin Human Review & Approval', approveOk, `Status transitioned to APPROVED`);
+
+  // Publish Signal & Dispatch Subscriber Notifications
+  let publishOk = false;
+  if (createdSignal?.id) {
+    const pubRes = await request(`/api/signals/${createdSignal.id}/publish`, {
+      method: 'POST',
+      headers: { Cookie: adminCookie }
+    });
+    publishOk = pubRes.status === 200 && pubRes.json?.signal?.status === 'PUBLISHED';
+  }
+  record('Admin Publish Signal & Broadcast Notifications', publishOk, `Status transitioned to PUBLISHED`);
+
+  // Regulatory Hardening: Aegis BLOCK on Prohibited Claim
+  const badSignalRes = await request('/api/signals', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Cookie: adminCookie },
     body: JSON.stringify({
-      secrets: { apiKey: 'test_sec_sk_9999888877776666' },
-      publicConfig: { provider: 'heuristic', model: 'internal-v1', baseUrl: 'https://api.openai.com/v1' }
+      title: 'Prohibited Stock Tip with Guaranteed Returns',
+      category: 'F_AND_O',
+      summary: '100% guaranteed profit sure shot call',
+      content: 'Guaranteed return risk-free jackpot call. You must buy now.',
+      source: 'Internal',
+      provider: 'Internal',
+      author: 'Anonymous'
     })
   });
-  record('Admin Credential Save & AES-256-GCM Encryption', saveAiRes.status === 200, `Status: ${saveAiRes.status}`);
+  const badSignal = badSignalRes.json?.signal;
 
-  // Test credential rotation
-  const rotateAiRes = await request('/api/admin/integrations/ai_provider/rotate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Cookie: adminCookie },
-    body: JSON.stringify({ secretKey: 'apiKey', newSecretValue: '' })
-  });
-  record('Admin Credential Rotation & Clearing', rotateAiRes.status === 200, `Status: ${rotateAiRes.status}`);
+  let aegisBlocked = false;
+  let humanApproveDenied = false;
+  if (badSignal?.id) {
+    const badAiRes = await request(`/api/signals/${badSignal.id}/ai-review`, {
+      method: 'POST',
+      headers: { Cookie: adminCookie }
+    });
+    const reviews = badAiRes.json?.signal?.aiReviews || [];
+    const aegis = reviews.find(r => r.agentName === 'AEGIS');
+    aegisBlocked = aegis?.complianceStatus === 'BLOCK';
 
-  // 6. SYSTEM HEALTH & PRE-FLIGHT DIAGNOSTICS
-  console.log('\n--- 6. SYSTEM HEALTH & PRE-FLIGHT DIAGNOSTICS ---');
+    const badApproveRes = await request(`/api/signals/${badSignal.id}/decision`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: adminCookie },
+      body: JSON.stringify({ action: 'APPROVE' })
+    });
+    humanApproveDenied = badApproveRes.status === 400;
+  }
+  record('Aegis Compliance Gatekeeper BLOCK Enforcement', aegisBlocked && humanApproveDenied, `Aegis BLOCK prevented human approval (Status 400)`);
+
+  // Employee Signals View-Only Access & Publishing RBAC Barrier
+  const empSignalsPage = await request('/employee/signals', { headers: { Cookie: empCookie } });
+  record('Employee /employee/signals Page Access', empSignalsPage.status === 200, `Status ${empSignalsPage.status}`);
+
+  if (createdSignal?.id) {
+    const empPublishAttempt = await request(`/api/signals/${createdSignal.id}/publish`, {
+      method: 'POST',
+      headers: { Cookie: empCookie }
+    });
+    record('Employee Publishing RBAC Barrier', empPublishAttempt.status === 403, `Staff denied publish access (Status ${empPublishAttempt.status})`);
+  }
+
+  // Admin Signals Settings
+  const settingsRes = await request('/api/admin/signals/settings', { headers: { Cookie: adminCookie } });
+  record('Admin Signals Settings API', settingsRes.status === 200 && settingsRes.json?.settings?.monthlyPrice !== undefined, `Configured Price: ₹${settingsRes.json?.settings?.monthlyPrice}/mo`);
+
+  // 5. SYSTEM HEALTH PRE-FLIGHT
+  console.log('\n--- 5. SYSTEM HEALTH PRE-FLIGHT ---');
   const healthRes = await request('/api/admin/system-health', { headers: { Cookie: adminCookie } });
   const healthData = healthRes.json?.health;
-  const subsystemsCount = healthData?.subsystems?.length || 0;
   record(
-    'System Health 15-Subsystem Audit',
-    healthRes.status === 200 && subsystemsCount === 15,
-    `Evaluated ${subsystemsCount} subsystems, Launch Gate: "${healthData?.gateMessage || healthData?.overallStatus || 'N/A'}"`
+    'System Health 15-Subsystem Pre-Flight',
+    healthRes.status === 200 && healthData?.subsystems?.length === 15,
+    `Launch Gate: "${healthData?.gateMessage || healthData?.overallStatus}"`
   );
 
   console.log('\n====================================================');

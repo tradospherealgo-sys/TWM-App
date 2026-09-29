@@ -32,6 +32,7 @@ model User {
   watchlists      Watchlist[]
   supportTickets  SupportTicket[]
   activityLogs    ActivityLog[]
+  subscriptions   Subscription[]
 }
 
 model Employee {
@@ -332,3 +333,142 @@ model ActivityLog {
 
   actorUser User? @relation(fields: [actorUserId], references: [id])
 }
+
+// ------------------------------------------------------------
+// SIGNALS & MARKET INTELLIGENCE MODULE
+// Lifecycle: DRAFT -> AI_REVIEW -> HUMAN_REVIEW -> APPROVED -> PUBLISHED -> ACTIVE -> CLOSED | EXPIRED
+// ------------------------------------------------------------
+model Signal {
+  id                String    @id @default(cuid())
+  slug              String    @unique
+  title             String
+  category          String    // F_AND_O | EQUITY | INDEX | COMMODITY | IPO | MUTUAL_FUNDS | SIP | MARKET_OUTLOOK | CORPORATE_ACTIONS | MACRO_EVENTS | RISK_ALERTS | EDUCATIONAL
+  subcategory       String?
+  instrument        String?   // e.g. "NIFTY 24500 CE", "RELIANCE", "CRUDE OIL"
+  exchange          String?   // NSE | BSE | MCX
+  symbol            String?   // RELIANCE, NIFTY
+  summary           String    // Short card summary
+  content           String    // Detailed approved research / intelligence
+  source            String    // Research source attribution
+  provider          String    // Authorized research provider
+  author            String    // Human analyst / editor
+  supportingInfo    String?   // Relevant disclosures, data links
+  validityType      String    @default("SESSION") // INTRADAY | SESSION | SWING | POSITIONAL | EVENT_BASED
+  validUntil        DateTime?
+  riskLevel         String    @default("MODERATE") // LOW | MODERATE | HIGH | VERY_HIGH
+  status            String    @default("DRAFT") // DRAFT | AI_REVIEW | HUMAN_REVIEW | APPROVED | PUBLISHED | ACTIVE | CLOSED | EXPIRED | REJECTED | SENT_BACK
+  publishedAt       DateTime?
+  closedAt          DateTime?
+  rejectionReason   String?
+  version           Int       @default(1)
+  createdByUserId   String?
+  approvedByUserId  String?
+  publishedByUserId String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  aiReviews         SignalAiReview[]
+  versions          SignalVersion[]
+}
+
+// ------------------------------------------------------------
+// AI INTELLIGENCE & COMPLIANCE REVIEW TEAM
+// Agents: ATLAS | VECTOR | ORION | SENTINEL | AEGIS | NEXUS
+// ------------------------------------------------------------
+model SignalAiReview {
+  id               String   @id @default(cuid())
+  signalId         String
+  agentName        String   // ATLAS | VECTOR | ORION | SENTINEL | AEGIS | NEXUS
+  agentRole        String
+  model            String   @default("twm-compliance-engine-v1")
+  status           String   @default("SUCCESS") // SUCCESS | WARNING | BLOCK | FAILED | AGENT_UNAVAILABLE
+  complianceStatus String   @default("PASS")    // PASS | WARNING | BLOCK
+  summary          String
+  analysisJson     String   @default("{}")      // Detailed observations, factors, warnings
+  latencyMs        Int      @default(0)
+  createdAt        DateTime @default(now())
+
+  signal Signal @relation(fields: [signalId], references: [id], onDelete: Cascade)
+}
+
+// ------------------------------------------------------------
+// SIGNAL VERSION HISTORY
+// ------------------------------------------------------------
+model SignalVersion {
+  id              String   @id @default(cuid())
+  signalId        String
+  versionNumber   Int
+  title           String
+  content         String
+  changedByUserId String?
+  changeReason    String?
+  snapshotJson    String   @default("{}")
+  createdAt       DateTime @default(now())
+
+  signal Signal @relation(fields: [signalId], references: [id], onDelete: Cascade)
+}
+
+// ------------------------------------------------------------
+// SUBSCRIPTION PLANS & ENTITLEMENTS
+// ------------------------------------------------------------
+model SubscriptionPlan {
+  id                   String   @id @default(cuid())
+  code                 String   @unique // SIGNALS_MONTHLY
+  name                 String   @default("TWM Signals & Market Intelligence")
+  description          String
+  price                Float    @default(499)
+  currency             String   @default("INR")
+  billingPeriod        String   @default("MONTHLY") // MONTHLY | QUARTERLY | ANNUAL
+  featuresJson         String   @default("[]")
+  includedCategoriesJson String @default("[]")
+  disclaimer           String
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id          String    @id @default(cuid())
+  userId      String
+  planId      String
+  status      String    @default("ACTIVE") // ACTIVE | TRIAL | EXPIRED | CANCELLED | PAYMENT_PENDING
+  startDate   DateTime  @default(now())
+  endDate     DateTime
+  autoRenew   Boolean   @default(false)
+  cancelledAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan   SubscriptionPlan @relation(fields: [planId], references: [id])
+  events SubscriptionEvent[]
+}
+
+model SubscriptionEvent {
+  id             String   @id @default(cuid())
+  subscriptionId String
+  eventType      String   // CREATED | ACTIVATED | RENEWED | CANCELLED | EXPIRED
+  detailsJson    String   @default("{}")
+  createdAt      DateTime @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+}
+
+// ------------------------------------------------------------
+// SIGNALS MODULE CONFIGURATION
+// ------------------------------------------------------------
+model SignalSettings {
+  id                    String   @id @default("default")
+  monthlyPrice          Float    @default(499)
+  billingPeriod         String   @default("MONTHLY")
+  enabledCategoriesJson String   @default("[]")
+  subscriptionRequired  Boolean  @default(true)
+  notificationsEnabled  Boolean  @default(true)
+  aiProvider            String   @default("heuristic")
+  aiModel               String   @default("gpt-4o")
+  disclaimer            String
+  updatedAt             DateTime @updatedAt
+}
+

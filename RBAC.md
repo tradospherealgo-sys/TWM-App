@@ -39,6 +39,16 @@
 | **Execute Provider Connection Tests** | ❌ | ❌ | ✅ | `/api/admin/integrations/[key]/test` |
 | **Rotate Integration Credentials** | ❌ | ❌ | ✅ | `/api/admin/integrations/[key]/rotate` |
 | **Inspect System Health & Launch Gate**| ❌ | ❌ | ✅ | `/admin/system-health`, `/api/admin/system-health` |
+| **Browse Signals Teasers & Directory** | ✅ | ✅ | ✅ | `/signals`, `/api/signals` |
+| **Read Full Signal & 6-Agent AI Reviews**| ✅ (Subscribed)| ✅ (Staff View)| ✅ | `/signals/[id]`, `/api/signals/[id]` |
+| **Manage Signals Subscription** | ✅ | ❌ | ❌ | `/signals`, `/api/signals/subscription` |
+| **Create Signals Drafts** | ❌ | ❌ | ✅ | `/admin/signals/create`, `/api/signals` |
+| **Run 6-Agent AI Review Pipeline** | ❌ | ❌ | ✅ | `/admin/signals/[id]`, `/api/signals/[id]/ai-review` |
+| **Human Review / Decision (Approve/Reject)**| ❌ | ❌ | ✅ | `/admin/signals/[id]`, `/api/signals/[id]/decision` |
+| **Publish Signals (Broadcast to Clients)**| ❌ | ❌ | ✅ | `/admin/signals/[id]`, `/api/signals/[id]/publish` |
+| **Close / Expire Active Signals** | ❌ | ❌ | ✅ | `/admin/signals/[id]`, `/api/signals/[id]/close` |
+| **Configure Signals Pricing & Settings**| ❌ | ❌ | ✅ | `/admin/signals/settings`, `/api/admin/signals/settings` |
+| **Staff Research Desk (Read-Only)** | ❌ | ✅ | ✅ | `/employee/signals`, `/api/signals` |
 
 ---
 

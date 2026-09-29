@@ -33,6 +33,7 @@ export function AdminNav({ adminName = 'Administrator' }: { adminName?: string }
     { label: 'Employees', href: '/admin/employees', icon: Briefcase },
     { label: 'CRM & Pipeline', href: '/admin/crm', icon: Layers },
     { label: 'Products', href: '/admin/products', icon: Layers },
+    { label: 'Signals', href: '/admin/signals', icon: Activity },
     { label: 'Applications', href: '/admin/applications', icon: FileCheck2 },
     { label: 'Audit Logs', href: '/admin/audit-logs', icon: ScrollText },
     { label: 'Integrations', href: '/admin/integrations', icon: Settings2 },

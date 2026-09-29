@@ -304,14 +304,211 @@ async function main() {
     }
   }
 
-  // 8. Log initial audit entry
+  // 8. Seed Signals Subscription Plan & Settings
+  const plan = await prisma.subscriptionPlan.upsert({
+    where: { code: 'SIGNALS_MONTHLY' },
+    update: { price: 499 },
+    create: {
+      code: 'SIGNALS_MONTHLY',
+      name: 'TWM Signals & Market Intelligence',
+      description: 'Curated multi-asset market intelligence, approved research, macro analysis, and risk alerts evaluated by the TWM 6-agent review team.',
+      price: 499,
+      currency: 'INR',
+      billingPeriod: 'MONTHLY',
+      featuresJson: JSON.stringify([
+        'Multi-Asset Intelligence (Equity, F&O, Indices, Commodity, IPO)',
+        '6-Agent AI Review & Compliance Transparency',
+        'Real-Time In-App Critical Risk Alerts',
+        'Approved Research & Educational Breakdowns',
+        'Direct SMC Ace Trading Portal Handoffs'
+      ]),
+      includedCategoriesJson: JSON.stringify([
+        'F_AND_O', 'EQUITY', 'INDEX', 'COMMODITY', 'IPO', 'MUTUAL_FUNDS',
+        'SIP', 'MARKET_OUTLOOK', 'CORPORATE_ACTIONS', 'MACRO_EVENTS', 'RISK_ALERTS', 'EDUCATIONAL'
+      ]),
+      disclaimer: 'All signals and market intelligence provided through TWM are for informational and educational purposes only and do not constitute personal investment advice or guaranteed return recommendations. Trading in equities, derivatives, and commodities involves substantial risk of loss.',
+      isActive: true,
+    },
+  });
+
+  await prisma.signalSettings.upsert({
+    where: { id: 'default' },
+    update: {},
+    create: {
+      id: 'default',
+      monthlyPrice: 499,
+      billingPeriod: 'MONTHLY',
+      enabledCategoriesJson: JSON.stringify([
+        'F_AND_O', 'EQUITY', 'INDEX', 'COMMODITY', 'IPO', 'MUTUAL_FUNDS',
+        'SIP', 'MARKET_OUTLOOK', 'CORPORATE_ACTIONS', 'MACRO_EVENTS', 'RISK_ALERTS', 'EDUCATIONAL'
+      ]),
+      subscriptionRequired: true,
+      notificationsEnabled: true,
+      aiProvider: 'heuristic',
+      aiModel: 'twm-compliance-engine-v1',
+      disclaimer: 'Market intelligence provided is strictly non-advisory. Derivatives and equities carry capital risk. Verify suitability with your financial planner before execution on SMC Ace.',
+    },
+  });
+
+  // 9. Seed Sample Published Signal with complete AI review team outputs
+  const publishedSignal = await prisma.signal.upsert({
+    where: { slug: 'nifty-50-range-breakout-analysis' },
+    update: {},
+    create: {
+      slug: 'nifty-50-range-breakout-analysis',
+      title: 'NIFTY 50 Range Breakout & Macro Volatility Analysis',
+      category: 'INDEX',
+      subcategory: 'Macro / Technical',
+      instrument: 'NIFTY 50 Index',
+      exchange: 'NSE',
+      symbol: 'NIFTY',
+      summary: 'NIFTY consolidates near upper band of recent trading range with elevated implied volatility ahead of the scheduled monetary policy announcement.',
+      content: '## Executive Market Intelligence Summary\n\nNIFTY 50 index is exhibiting consolidation around key technical psychological zones following sustained institutional inflows over recent settlement cycles.\n\n### Macro & Derivatives Structure\n- **Open Interest Distribution**: Maximum call open interest concentration is observed at higher strike bands, indicating immediate resistance, while put writing is prominent at lower support zones.\n- **Volatility Context**: India VIX has edged higher, reflecting event pricing ahead of the upcoming monetary policy decision.\n- **Sector Rotation**: Banking and IT constituents display divergent momentum, with Financial Services providing defensive stabilization.\n\n### Operational Guidance\nThis analysis is provided exclusively for risk framing and strategic scenario evaluation. All trade execution should be routed through official SMC Ace trading terminals.',
+      source: 'Institutional Research Desk',
+      provider: 'Tradosphere Analytics Desk',
+      author: 'Senior Quant Strategist',
+      supportingInfo: 'NSE Official Derivative Statistics, RBI MPC Schedule',
+      validityType: 'SESSION',
+      validUntil: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      riskLevel: 'MODERATE',
+      status: 'PUBLISHED',
+      publishedAt: new Date(),
+      version: 1,
+      createdByUserId: adminUser.id,
+      approvedByUserId: adminUser.id,
+      publishedByUserId: adminUser.id,
+      aiReviews: {
+        create: [
+          {
+            agentName: 'ATLAS',
+            agentRole: 'Market Context & Macro Intelligence',
+            model: 'twm-atlas-v1',
+            status: 'SUCCESS',
+            complianceStatus: 'PASS',
+            summary: 'Macro context is balanced. Domestic liquidity remains supportive while global bond yields present minor headwinds.',
+            analysisJson: JSON.stringify({
+              context: 'Consolidation phase near historical highs.',
+              supportingFactors: ['Domestic institutional net buying', 'Stable core inflation prints'],
+              conflictingFactors: ['Elevated crude oil volatility', 'FII hedging activity in index futures'],
+              dataQuality: 'GOOD',
+              dataTimestamp: new Date().toISOString()
+            }),
+            latencyMs: 120
+          },
+          {
+            agentName: 'VECTOR',
+            agentRole: 'Technical & Quantitative Intelligence',
+            model: 'twm-vector-v1',
+            status: 'SUCCESS',
+            complianceStatus: 'PASS',
+            summary: 'Price structure exhibits positive momentum on the daily timeframe; RSI remains neutral with no immediate overbought divergence.',
+            analysisJson: JSON.stringify({
+              trend: 'Bullish consolidation',
+              keyLevels: { support: '20-day EMA support band', resistance: 'Upper Bollinger Band boundary' },
+              momentum: 'Moderate positive',
+              dataQuality: 'GOOD'
+            }),
+            latencyMs: 140
+          },
+          {
+            agentName: 'ORION',
+            agentRole: 'Fundamental & Event Intelligence',
+            model: 'twm-orion-v1',
+            status: 'SUCCESS',
+            complianceStatus: 'PASS',
+            summary: 'Scheduled RBI Monetary Policy Committee statement represents the primary material event risk in the current settlement cycle.',
+            analysisJson: JSON.stringify({
+              upcomingEvents: ['RBI MPC Interest Rate Decision', 'US Initial Jobless Claims'],
+              earningsImpact: 'Neutral across index heavyweights',
+              eventRisk: 'MODERATE'
+            }),
+            latencyMs: 110
+          },
+          {
+            agentName: 'SENTINEL',
+            agentRole: 'Risk & Data Integrity Intelligence',
+            model: 'twm-sentinel-v1',
+            status: 'SUCCESS',
+            complianceStatus: 'PASS',
+            summary: 'Derivatives data freshness verified. Implied volatility premium elevated by 4.2% across near-month strikes.',
+            analysisJson: JSON.stringify({
+              volatilityRisk: 'MODERATE',
+              liquidityStatus: 'DEEP_AND_LIQUID',
+              dataFreshness: 'FRESH',
+              staleDataWarnings: []
+            }),
+            latencyMs: 95
+          },
+          {
+            agentName: 'AEGIS',
+            agentRole: 'Compliance & Regulatory Review',
+            model: 'twm-aegis-v1',
+            status: 'SUCCESS',
+            complianceStatus: 'PASS',
+            summary: 'Content reviewed against SEBI Authorised Person guidelines. Contains zero buy/sell directives, zero price targets, and full statutory disclaimers.',
+            analysisJson: JSON.stringify({
+              verdict: 'PASS',
+              prohibitedClaimsCheck: 'CLEAN - No guaranteed returns or directional tips',
+              disclosuresPresent: true,
+              sourceAttributed: true
+            }),
+            latencyMs: 80
+          },
+          {
+            agentName: 'NEXUS',
+            agentRole: 'Intelligence Synthesis Coordinator',
+            model: 'twm-nexus-v1',
+            status: 'SUCCESS',
+            complianceStatus: 'PASS',
+            summary: 'Atlas, Vector, Orion, Sentinel, and Aegis in consensus. Recommended human action: REVIEW FOR PUBLICATION.',
+            analysisJson: JSON.stringify({
+              recommendedHumanAction: 'REVIEW',
+              consensusScore: 96,
+              agentAgreements: 'Technical momentum aligns with domestic macro stability; derivatives caution highlighted by Sentinel.',
+              conflicts: [],
+              missingInformation: []
+            }),
+            latencyMs: 150
+          }
+        ]
+      }
+    }
+  });
+
+  // 10. Seed a Draft Signal for workflow testing
+  await prisma.signal.upsert({
+    where: { slug: 'reliance-grm-petrochemical-outlook' },
+    update: {},
+    create: {
+      slug: 'reliance-grm-petrochemical-outlook',
+      title: 'Reliance Industries Refining Margins & Energy Outlook',
+      category: 'EQUITY',
+      subcategory: 'Energy & Petrochemicals',
+      instrument: 'RELIANCE Equity',
+      exchange: 'NSE',
+      symbol: 'RELIANCE',
+      summary: 'Gross refining margins stabilize while downstream petrochemical margins recover from cyclical lows.',
+      content: '## Fundamental Research Brief\n\nReliance Industries demonstrates structural operational resilience with integrated refinery margins outperforming Singapore benchmark GRMs.\n\n### Operational Observations\n- **Refining Utilization**: Throughput remains consistently above nameplate capacity.\n- **Retail & Digital Momentum**: Continued double-digit top-line growth in consumer business verticals.\n- **Balance Sheet Deleveraging**: Net debt-to-EBITDA remains comfortably below threshold benchmarks.\n\n*Review required prior to publication.*',
+      source: 'NSE Corporate Filings & Annual Disclosures',
+      provider: 'Tradosphere Research Desk',
+      author: 'Energy Research Lead',
+      validityType: 'SWING',
+      validUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      riskLevel: 'LOW',
+      status: 'DRAFT',
+      version: 1,
+      createdByUserId: adminUser.id,
+    }
+  });
+
+  // 11. Log initial audit entry
   await prisma.activityLog.create({
     data: {
       actorUserId: adminUser.id,
       actorRole: 'ADMIN',
       action: 'SYSTEM_INITIALIZATION',
       entityType: 'System',
-      detailsJson: JSON.stringify({ version: '1.0.0', environment: 'development' }),
+      detailsJson: JSON.stringify({ version: '1.1.0', environment: 'development', module: 'SIGNALS' }),
     },
   });
 

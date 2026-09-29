@@ -17,8 +17,16 @@ TWM uses **Prisma ORM** with **SQLite** for zero-dependency local development an
      │
      ├──1:N── [Watchlist]
      ├──1:N── [Notification]
-     └──1:N── [ActivityLog] (Audit)
+     ├──1:N── [ActivityLog] (Audit)
+     └──1:N── [Subscription] ──N:1── [SubscriptionPlan]
+                    │
+                    └──1:N── [SubscriptionEvent]
 
+   [Signal] ──1:N── [SignalAiReview] (Atlas, Vector, Orion, Sentinel, Aegis, Nexus)
+      │
+      └──1:N── [SignalVersion] (Immutable Historical Snapshots)
+
+   [SignalSettings] (Dynamic Pricing, Billing Period, Categories, Disclaimers)
    [Product] (Financial Catalog & Required Checklists)
    [KnowledgeArticle] (Approved SOPs & Regulatory Guidelines)
    [IntegrationConfig] (AES-256-GCM Encrypted Provider Vault)
@@ -172,6 +180,85 @@ Encrypted credential vault and connection management store:
 - `lastTestResult`: Status string (`PASSED`, `FAILED`, `PENDING`).
 - `lastErrorMessage`: Sanitized error description if test failed.
 - `lastLatencyMs`: Round-trip connection latency in milliseconds.
+
+### 15. `Signal`
+Market intelligence and analysis publication entity:
+- `id`: CUID.
+- `title`: Professional headline (e.g. "NIFTY 50 Range Breakout Analysis").
+- `slug`: URL-friendly identifier.
+- `category`: Classification enum (`FO`, `EQUITY`, `INDEX`, `COMMODITY`, `IPO`, `MUTUAL_FUNDS`, `SIP`, `MARKET_OUTLOOK`, `CORPORATE_ACTIONS`, `MACRO_EVENTS`, `RISK_ALERTS`, `EDUCATIONAL`).
+- `status`: Lifecycle enum (`DRAFT`, `AI_REVIEW`, `HUMAN_REVIEW`, `APPROVED`, `PUBLISHED`, `ACTIVE`, `CLOSED`, `EXPIRED`, `REJECTED`, `SENT_BACK`).
+- `summary`: Short teaser visible to all clients.
+- `content`: Full markdown research body (redacted on server for non-subscribers).
+- `riskLevel`: Risk classification (`LOW`, `MODERATE`, `HIGH`, `VERY_HIGH`).
+- `horizon`: Time horizon (`INTRADAY`, `SWING`, `POSITIONAL`, `SHORT_TERM`, `MEDIUM_TERM`, `LONG_TERM`).
+- `sourceType`: Attribution type (`INTERNAL_RESEARCH`, `SMC_RESEARCH`, `APPROVED_PARTNER`, `EXTERNAL_AUTHORIZED`).
+- `sourceName`: Attributed research author or firm.
+- `sourceUrl`: Optional reference URL.
+- `disclaimer`: Regulatory non-advisory disclaimer.
+- `createdById`, `approvedById`, `publishedById`: Audit foreign keys to `User`.
+- `reviewedAt`, `approvedAt`, `publishedAt`, `expiresAt`, `closedAt`: Lifecycle timestamps.
+
+### 16. `SignalAiReview`
+Individual intelligence outputs from the 6-agent AI review pipeline:
+- `id`: CUID.
+- `signalId`: Parent signal relation.
+- `agentName`: Agent identifier (`ATLAS`, `VECTOR`, `ORION`, `SENTINEL`, `AEGIS`, `NEXUS`).
+- `agentRole`: Display title (e.g. "Compliance Gatekeeper").
+- `verdict`: Agent assessment (`PASS`, `WARNING`, `BLOCK`, `REVIEW`, `DATA_UNAVAILABLE`).
+- `summary`: Narrative synthesis of the review.
+- `findingsJson`: Structured JSON array of specific observations, warnings, or evidence.
+- `confidence`: Confidence score (0.0 to 1.0).
+- `dataQuality`: Data freshness/coverage indicator (`GOOD`, `WARNING`, `DATA_UNAVAILABLE`).
+- `executionMs`: Round-trip evaluation latency.
+
+### 17. `SignalVersion`
+Immutable historical snapshot tracking edits to signals:
+- `id`: CUID.
+- `signalId`: Target signal.
+- `versionNumber`: Incremental version integer.
+- `title`, `summary`, `content`, `category`, `riskLevel`: Snapshot state.
+- `changeSummary`: Description of edits.
+- `changedById`: Editor foreign key.
+
+### 18. `SubscriptionPlan`
+Tiered offerings for paid intelligence access:
+- `id`: Unique identifier (`SIGNALS_MONTHLY`, `SIGNALS_ANNUAL`).
+- `name`: Display name (e.g. "TWM Signals & Market Intelligence").
+- `description`: Plan benefits and coverage.
+- `price`: Plan price in INR (e.g. ₹499).
+- `currency`: Currency code (`INR`).
+- `billingPeriod`: Cycle (`MONTHLY`, `QUARTERLY`, `ANNUAL`).
+- `active`: Availability flag.
+- `featuresJson`: Structured JSON list of included entitlements.
+
+### 19. `Subscription`
+Client subscription contract linked to `User` and `SubscriptionPlan`:
+- `id`: CUID.
+- `userId`: Subscribed client.
+- `planId`: Subscribed plan.
+- `status`: Lifecycle state (`ACTIVE`, `TRIAL`, `EXPIRED`, `CANCELLED`, `PAYMENT_PENDING`).
+- `startDate`, `endDate`, `cancelledAt`: Validity windows.
+- `paymentProvider`: Gateway identifier (e.g. `RAZORPAY`, `STRIPE`, `MANUAL`).
+- `paymentReference`: External gateway transaction ID.
+- `autoRenew`: Renewal flag.
+
+### 20. `SubscriptionEvent`
+Audit trail of subscription status transitions:
+- `id`: CUID.
+- `subscriptionId`: Target subscription.
+- `eventType`: Event string (`CREATED`, `ACTIVATED`, `RENEWED`, `CANCELLED`, `EXPIRED`, `PAYMENT_FAILED`).
+- `detailsJson`: Event metadata payload.
+
+### 21. `SignalSettings`
+Singleton configuration table for the Signals module:
+- `id`: Unique key (`default`).
+- `signalsModuleEnabled`: Global feature toggle.
+- `monthlyPrice`: Active monthly subscription price in INR (dynamic, not hard-coded).
+- `billingPeriod`: Active period string (`MONTHLY`).
+- `enabledCategoriesJson`: JSON array of enabled category slugs.
+- `globalDisclaimer`: Master compliance disclaimer rendered across all signals.
+- `updatedById`: Admin editor foreign key.
 
 ---
 

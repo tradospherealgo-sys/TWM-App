@@ -115,3 +115,73 @@ The executive command center for system administrators and compliance heads:
 4. **Document Stream Privacy**:
    - Direct static file serving of customer documents is prohibited.
    - All KYC documents are streamed through `/api/documents/download`, which enforces strict session verification and role-based ownership checks before streaming binary buffers.
+
+---
+
+## 6. Paid Signals & Market Intelligence Architecture
+
+The Signals module delivers professional, compliance-verified market intelligence via an internal 6-agent AI review pipeline and subscription-gated distribution.
+
+```
+                           SIGNAL LIFECYCLE & AI GATEWAY
+                                         │
+                                         ▼
+                                   [ADMIN / DESK]
+                       Author / Import Research Draft
+                       (Attribution, Validity, Risk)
+                                         │
+                                         ▼
+                                 [SIGNAL: DRAFT]
+                                         │
+                                         ▼
+                           6-AGENT AI REVIEW PIPELINE
+          ┌─────────────┬─────────────┬─────────────┬─────────────┐
+          ▼             ▼             ▼             ▼             ▼
+       ATLAS         VECTOR        ORION        SENTINEL        AEGIS
+       Market      Technical     Fundamental      Risk &      Compliance
+      Context      Structure     & Catalysts    Integrity     Gatekeeper
+          │             │             │             │             │
+          └─────────────┴──────┬──────┴─────────────┴─────────────┘
+                               │
+                               ▼
+                             NEXUS
+                     Synthesis Coordinator
+             (Review / Warning / Compliance Block)
+                               │
+                               ▼
+                     [SIGNAL: HUMAN_REVIEW]
+                               │
+               ┌───────────────┴───────────────┐
+               ▼                               ▼
+       [Aegis = BLOCK]                 [Aegis != BLOCK]
+       Hard-Locked                     Admin Human Approval
+       (Approval Blocked)                      │
+                                               ▼
+                                      [SIGNAL: APPROVED]
+                                               │
+                                               ▼
+                                     [SIGNAL: PUBLISHED]
+                                               │
+                               ┌───────────────┴───────────────┐
+                               ▼                               ▼
+                     UNSUBSCRIBED CLIENTS             SUBSCRIBED CLIENTS
+                     • Public Title & Teaser          • Full Research Content
+                     • Category & Risk Level          • Complete 6-Agent Reviews
+                     • Server-Side Redacted           • SMC Trade Execution Handoff
+                     • Upgrade Paywall CTA            • Active Validity Monitoring
+```
+
+### Core Architecture Pillars:
+1. **Human Authorship & SEBI AP Boundaries**: Signals must originate from authorized human analysts or SMC research feeds. The AI team strictly functions as an analytical and compliance review layer—AI never autonomously creates, approves, or publishes trading calls or target prices.
+2. **6-Agent Review Specialization**:
+   - **Atlas (Agent 01)**: Market Context & Macro Intelligence (NIFTY/SENSEX, breadth, volatility).
+   - **Vector (Agent 02)**: Technical & Quantitative Intelligence (structure, volume, momentum without directional buy/sell mandates).
+   - **Orion (Agent 03)**: Fundamental & Event Intelligence (corporate actions, earnings, disclosures).
+   - **Sentinel (Agent 04)**: Risk & Data Integrity Intelligence (data freshness, leverage risks, stop-loss hygiene).
+   - **Aegis (Agent 05)**: Compliance Gatekeeper (evaluates prohibited guarantees, missing attribution, directive claims; holds hard-blocking authority).
+   - **Nexus (Agent 06)**: Synthesis Coordinator (consolidates reviews, reconciles conflicts, sets composite verdict).
+3. **Fail-Closed Compliance Gate**: If Aegis evaluates a signal with `BLOCK` (e.g. promissory language, guaranteed returns), backend service barriers strictly prevent administrator approval or publication.
+4. **Server-Side Paywall & Redaction**: Non-subscribers never receive full research content or agent reviews over the API. Data redaction occurs at the database query/service layer.
+5. **Immutable Version History**: Every revision to a signal creates an immutable `SignalVersion` record before publication.
+6. **Dynamic Admin Configuration**: Pricing (default ₹499/mo), billing periods, disclaimers, and enabled categories are fully configurable via `/admin/signals/settings` without code redeployments.
+
