@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { verifyPassword, signSessionToken, SESSION_COOKIE_NAME, UserRole } from '@/lib/auth';
 import { logActivity } from '@/lib/audit';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -11,6 +12,15 @@ const loginSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get('x-forwarded-for') || 'local';
+    const rateLimit = checkRateLimit(`login:${ip}`, 10, 60000);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many login attempts. Please wait a minute and try again.' },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const parsed = loginSchema.safeParse(body);
 

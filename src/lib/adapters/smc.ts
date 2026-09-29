@@ -8,6 +8,9 @@
  * 3. Provide approved links and onboarding handoffs to SMC Ace.
  */
 
+import prisma from '../prisma';
+import { decryptSecretsMap } from '../encryption';
+
 export interface SMCIntegrationStatus {
   isConfigured: boolean;
   status: 'CONNECTED' | 'CONFIGURATION_REQUIRED' | 'UNAVAILABLE';
@@ -23,18 +26,62 @@ export function getSMCIntegrationStatus(): SMCIntegrationStatus {
   const onboardingUrl = process.env.SMC_GLOBAL_ONBOARDING_URL || 'https://www.smcindiaonline.com';
   const tradingPortalUrl = process.env.SMC_GLOBAL_TRADING_PORTAL_URL || 'https://smctradeonline.com';
 
-  const isConfigured = Boolean(apCode && apiKey);
+  const isConfigured = Boolean(apCode);
 
   return {
     isConfigured,
-    status: isConfigured ? 'CONNECTED' : 'CONFIGURATION_REQUIRED',
+    status: isConfigured ? (apiKey ? 'CONNECTED' : 'CONFIGURATION_REQUIRED') : 'CONFIGURATION_REQUIRED',
     apCode,
     onboardingUrl,
     tradingPortalUrl,
     message: isConfigured
-      ? 'SMC Global API gateway connected.'
-      : 'SMC Global API credentials are not yet configured in environment variables. Trading execution and demat operations route via SMC official portals.',
+      ? (apiKey
+          ? 'SMC Global API gateway connected.'
+          : 'SMC Authorised Person gateway active. Direct API integration requires provider credentials/documentation.')
+      : 'SMC Global API credentials are not yet configured. Demat operations and trading route via SMC official portals.',
   };
+}
+
+export async function getSMCIntegrationStatusAsync(): Promise<SMCIntegrationStatus> {
+  try {
+    const config = await prisma.integrationConfig.findUnique({
+      where: { providerKey: 'SMC_GLOBAL' },
+    });
+
+    if (config) {
+      let publicConfig: Record<string, any> = {};
+      try {
+        publicConfig = JSON.parse(config.publicConfigJson || '{}');
+      } catch {
+        publicConfig = {};
+      }
+
+      const secrets = decryptSecretsMap(config.encryptedSecrets);
+      const apCode = publicConfig.apCode || secrets.apCode || process.env.SMC_GLOBAL_AP_CODE || null;
+      const apiKey = secrets.apiKey || process.env.SMC_GLOBAL_API_KEY || null;
+      const onboardingUrl = publicConfig.onboardingUrl || process.env.SMC_GLOBAL_ONBOARDING_URL || 'https://www.smcindiaonline.com';
+      const tradingPortalUrl = publicConfig.tradingPortalUrl || process.env.SMC_GLOBAL_TRADING_PORTAL_URL || 'https://smctradeonline.com';
+
+      const isConfigured = Boolean(apCode);
+
+      return {
+        isConfigured,
+        status: isConfigured ? (apiKey ? 'CONNECTED' : 'CONFIGURATION_REQUIRED') : 'CONFIGURATION_REQUIRED',
+        apCode,
+        onboardingUrl,
+        tradingPortalUrl,
+        message: isConfigured
+          ? (apiKey
+              ? 'SMC Global API gateway connected.'
+              : 'SMC Authorised Person gateway active. Direct API integration requires provider credentials/documentation.')
+          : 'SMC Global API credentials are not yet configured in Admin -> Integrations.',
+      };
+    }
+  } catch (e) {
+    // fallback
+  }
+
+  return getSMCIntegrationStatus();
 }
 
 /**

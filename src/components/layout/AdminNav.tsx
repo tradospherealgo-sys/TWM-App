@@ -13,6 +13,7 @@ import {
   Settings2,
   LayoutDashboard,
   LogOut,
+  Activity,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -35,6 +36,7 @@ export function AdminNav({ adminName = 'Administrator' }: { adminName?: string }
     { label: 'Applications', href: '/admin/applications', icon: FileCheck2 },
     { label: 'Audit Logs', href: '/admin/audit-logs', icon: ScrollText },
     { label: 'Integrations', href: '/admin/integrations', icon: Settings2 },
+    { label: 'System Health', href: '/admin/system-health', icon: Activity },
   ];
 
   return (

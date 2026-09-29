@@ -8,9 +8,9 @@ TWM is a unified financial services and business operating platform connecting c
 ## 🏛️ Core Principles & Boundaries (Master Reference)
 
 1. **Three Operating Environments (One Platform)**:
-   - **Client Panel** (`/home`, `/markets`, `/invest`, `/protect`, `/borrow`, `/applications`, `/account`): Android-first mobile financial experience for exploring markets, watchlists, mutual funds, SIP calculator, IPO desk, insurance, loans, and application tracking.
-   - **Employee Panel** (`/employee`, `/employee/leads`, `/employee/tasks`, `/employee/followups`, `/employee/applications`, `/employee/knowledge`, `/employee/copilot`, `/employee/report`): Complete daily operating system for relationship managers and operations staff.
-   - **Admin Panel** (`/admin`, `/admin/users`, `/admin/employees`, `/admin/crm`, `/admin/products`, `/admin/applications`, `/admin/audit-logs`, `/admin/integrations`): Executive control center for role assignments, CRM oversight, and compliance auditing.
+   - **Client Panel** (`/home`, `/markets`, `/invest`, `/protect`, `/borrow`, `/applications`, `/documents`, `/support`, `/account`): Android-first mobile financial experience for exploring markets, watchlists, mutual funds, SIP calculator, IPO desk, insurance, loans, KYC document vault, customer support tickets, and application tracking.
+   - **Employee Panel** (`/employee`, `/employee/leads`, `/employee/tasks`, `/employee/followups`, `/employee/applications`, `/employee/support`, `/employee/knowledge`, `/employee/copilot`, `/employee/report`): Complete daily operating system for relationship managers and operations staff.
+   - **Admin Panel** (`/admin`, `/admin/users`, `/admin/employees`, `/admin/crm`, `/admin/products`, `/admin/applications`, `/admin/audit-logs`, `/admin/integrations`, `/admin/system-health`): Executive control center with AES-256-GCM encrypted credential vault, automated 15-subsystem health audit, and launch gate.
 
 2. **Strict Regulatory Boundaries (SEBI Compliance)**:
    - TWM is **not** an independent SEBI Registered Investment Adviser (RIA) or Research Analyst (RA).
@@ -20,7 +20,7 @@ TWM is a unified financial services and business operating platform connecting c
 3. **No Paper Trading / No Fake Data**:
    - Zero paper trading or simulated execution.
    - Genuine Indian market reference directory (NSE/BSE equities, ISIN, sectors).
-   - When live market feed or broker APIs are unconfigured, TWM presents honest states (`Data Unavailable`, `Configuration Required`).
+   - When live market feed or broker APIs are unconfigured, TWM presents honest states (`LIVE MARKET DATA UNAVAILABLE`, `Configuration Required`).
 
 4. **SMC Global Handoff**:
    - Trade execution, order books, and depository accounts reside directly within SMC Global / SMC Ace.
@@ -70,13 +70,16 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ## 🧪 Testing & Verification
 
 ```bash
-# Run unit & integration test suite (Vitest)
+# Run complete test suite (Vitest - 31 tests across 7 suites)
 npm run test
 
-# Run TypeScript typecheck
+# Run TypeScript typecheck (0 errors)
 npm run typecheck
 
-# Build for production
+# Run ESLint (0 errors)
+npm run lint
+
+# Build for production (53 static & dynamic routes)
 npm run build
 ```
 
@@ -84,6 +87,7 @@ npm run build
 
 ## 📚 Technical Documentation
 
+- [Production Readiness & Launch Guide](PRODUCTION-READINESS.md)
 - [Architecture & Design System](ARCHITECTURE.md)
 - [Role-Based Access Control (RBAC)](RBAC.md)
 - [Database Schema & Models](DATABASE.md)

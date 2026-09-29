@@ -13,6 +13,7 @@ import {
   Sparkles,
   ClipboardList,
   LogOut,
+  MessageSquare,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -32,6 +33,7 @@ export function EmployeeNav({ employeeName = 'Employee' }: { employeeName?: stri
     { label: 'Tasks', href: '/employee/tasks', icon: CheckSquare },
     { label: 'Follow-ups', href: '/employee/followups', icon: PhoneCall },
     { label: 'Applications', href: '/employee/applications', icon: FileSpreadsheet },
+    { label: 'Support Desk', href: '/employee/support', icon: MessageSquare },
     { label: 'Knowledge & SOPs', href: '/employee/knowledge', icon: BookOpen },
     { label: 'AI Copilot', href: '/employee/copilot', icon: Sparkles },
     { label: 'Daily Report', href: '/employee/report', icon: ClipboardList },

@@ -89,7 +89,7 @@ export async function getCurrentUser() {
       role: true,
       status: true,
       customerProfile: {
-        select: { id: true, customerCode: true, kycStatus: true, pan: true },
+        select: { id: true, customerCode: true, kycStatus: true, pan: true, assignedEmployeeId: true },
       },
       employeeProfile: {
         select: { id: true, employeeCode: true, department: true, designation: true },

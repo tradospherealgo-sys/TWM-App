@@ -193,6 +193,40 @@ export default function EmployeeApplicationsPage() {
               </pre>
             </div>
 
+            {/* Attached KYC Documents */}
+            <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+              <span className="text-[10px] uppercase font-semibold text-slate-400 block">
+                Attached Documents
+              </span>
+              {(selectedApp as any).documents && (selectedApp as any).documents.length > 0 ? (
+                <div className="space-y-2">
+                  {(selectedApp as any).documents.map((doc: any) => (
+                    <div
+                      key={doc.id}
+                      className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between text-xs"
+                    >
+                      <div>
+                        <div className="font-semibold text-white">{doc.title}</div>
+                        <span className="text-[10px] text-slate-400">{doc.documentType}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <StatusBadge status={doc.status} />
+                        <a
+                          href={doc.fileUrl}
+                          download
+                          className="text-[11px] text-blue-400 hover:underline"
+                        >
+                          View
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[11px] text-slate-500">No documents attached to this file yet.</p>
+              )}
+            </div>
+
             {/* Status Update Form */}
             <div className="space-y-3 pt-2 border-t border-slate-800">
               <div>

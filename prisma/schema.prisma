@@ -51,6 +51,7 @@ model Employee {
   assignedApplications Application[]
   followUps         FollowUp[]
   dailyReports      EmployeeDailyReport[]
+  assignedTickets   SupportTicket[]
 }
 
 model Customer {
@@ -272,18 +273,47 @@ model EmployeeDailyReport {
 // SUPPORT TICKETS
 // ------------------------------------------------------------
 model SupportTicket {
-  id            String   @id @default(cuid())
-  userId        String
-  applicationId String?
-  subject       String
-  description   String
-  priority      String   @default("MEDIUM") // LOW | MEDIUM | HIGH
-  status        String   @default("OPEN")   // OPEN | IN_PROGRESS | RESOLVED | CLOSED
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                 String    @id @default(cuid())
+  ticketNumber       String    @unique
+  userId             String
+  applicationId      String?
+  assignedEmployeeId String?
+  subject            String
+  description        String
+  priority           String    @default("MEDIUM") // LOW | MEDIUM | HIGH | URGENT
+  status             String    @default("OPEN")   // OPEN | IN_PROGRESS | RESOLVED | CLOSED
+  resolutionNotes    String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  application Application? @relation(fields: [applicationId], references: [id])
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application      Application? @relation(fields: [applicationId], references: [id])
+  assignedEmployee Employee?    @relation(fields: [assignedEmployeeId], references: [id])
+}
+
+// ------------------------------------------------------------
+// INTEGRATION CONFIGURATION & CREDENTIAL VAULT
+// Secure, encrypted storage of provider credentials entered via Admin -> Integrations.
+// Sensitive fields are encrypted at rest with AES-256-GCM.
+// ------------------------------------------------------------
+model IntegrationConfig {
+  id                String    @id @default(cuid())
+  providerKey       String    @unique // DATABASE | SUPABASE | UPSTOX | SMC_GLOBAL | AI_PROVIDER | EMAIL | STORAGE | NOTIFICATIONS | MARKET_DATA
+  name              String
+  category          String    // DATABASE | BROKER_GATEWAY | MARKET_DATA | AI | COMMUNICATION | STORAGE
+  environment       String    @default("PRODUCTION") // PRODUCTION | SANDBOX
+  encryptedSecrets  String    @default("{}") // AES-256-GCM encrypted JSON string of sensitive credentials
+  publicConfigJson  String    @default("{}") // JSON string of non-sensitive config (e.g. baseUrl, endpoints, driver, etc.)
+  maskedSecretsJson String    @default("{}") // JSON string of masked representations (e.g. "••••••••1234") for UI
+  status            String    @default("NOT_CONFIGURED") // NOT_CONFIGURED | INCOMPLETE | CONFIGURED | CONNECTED | CONNECTION_FAILED | DISABLED | REQUIRES_BOOTSTRAP
+  isRequired        Boolean   @default(false)
+  isBootstrapOnly   Boolean   @default(false) // If true, must be configured at deployment level (e.g. DATABASE_URL)
+  lastTestedAt      DateTime?
+  lastTestResult    String?   // JSON string summarizing structured test results
+  lastError         String?
+  updatedByUserId   String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 }
 
 // ------------------------------------------------------------

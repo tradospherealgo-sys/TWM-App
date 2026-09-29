@@ -12,6 +12,7 @@ dist/
 
 # SQLite databases & temp files
 *.sqlite
+chat1fromagy
 *.sqlite3
 *.db
 *.db-journal

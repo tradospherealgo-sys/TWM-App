@@ -108,6 +108,35 @@ export default function AccountPage() {
         </div>
       </Card>
 
+      {/* Service Links */}
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        <a
+          href="/documents"
+          className="p-3 rounded-xl bg-[#131C2E] border border-slate-800 hover:border-slate-700 transition-all flex items-center gap-2.5 text-slate-200"
+        >
+          <span className="p-2 rounded-lg bg-blue-600/10 text-blue-400">
+            <FileCheck className="w-4 h-4" />
+          </span>
+          <div>
+            <div className="font-semibold text-white">KYC Documents</div>
+            <span className="text-[10px] text-slate-400">Upload &amp; verify</span>
+          </div>
+        </a>
+
+        <a
+          href="/support"
+          className="p-3 rounded-xl bg-[#131C2E] border border-slate-800 hover:border-slate-700 transition-all flex items-center gap-2.5 text-slate-200"
+        >
+          <span className="p-2 rounded-lg bg-emerald-600/10 text-emerald-400">
+            <Shield className="w-4 h-4" />
+          </span>
+          <div>
+            <div className="font-semibold text-white">Help &amp; Support</div>
+            <span className="text-[10px] text-slate-400">Raise query</span>
+          </div>
+        </a>
+      </div>
+
       {/* SMC Brokerage Relationship */}
       <Card className="p-4 space-y-2 bg-[#131C2E]">
         <div className="flex items-center gap-2">
