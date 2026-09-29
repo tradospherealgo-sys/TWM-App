@@ -4,10 +4,15 @@ import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { logActivity } from '@/lib/audit';
 
-const verifySchema = z.object({
-  status: z.enum(['VERIFIED', 'REJECTED']),
-  notes: z.string().optional(),
-});
+const verifySchema = z
+  .object({
+    status: z.enum(['VERIFIED', 'REJECTED']).optional(),
+    verificationStatus: z.enum(['VERIFIED', 'REJECTED']).optional(),
+    notes: z.string().optional(),
+  })
+  .refine((data) => data.status || data.verificationStatus, {
+    message: 'Either status or verificationStatus is required',
+  });
 
 export async function POST(
   request: NextRequest,
@@ -26,7 +31,8 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid verification format' }, { status: 400 });
     }
 
-    const { status, notes } = parsed.data;
+    const status = (parsed.data.status || parsed.data.verificationStatus)!;
+    const { notes } = parsed.data;
 
     const document = await prisma.document.findUnique({
       where: { id: params.id },

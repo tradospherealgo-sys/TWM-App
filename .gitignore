@@ -39,3 +39,7 @@ yarn-error.log*
 # IDEs
 .vscode/
 .idea/
+
+# Uploads vault
+uploads/*
+!uploads/.gitkeep

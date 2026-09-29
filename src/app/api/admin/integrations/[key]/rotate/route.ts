@@ -14,11 +14,16 @@ export async function POST(
   const providerKey = params.key.toUpperCase();
 
   try {
-    const body = await request.json();
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch {
+      // Body empty or non-JSON
+    }
     const { secretKey, newSecretValue } = body;
 
     if (!secretKey) {
-      return NextResponse.json({ error: 'Missing secretKey' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing secretKey in request body' }, { status: 400 });
     }
 
     await rotateIntegrationSecret(providerKey, secretKey, newSecretValue || '', user.id);

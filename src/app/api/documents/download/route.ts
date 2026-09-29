@@ -19,6 +19,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    let fileKeyToUse = key;
+
     // If docId is provided, check role permissions
     if (docId) {
       const doc = await prisma.document.findUnique({
@@ -33,9 +35,18 @@ export async function GET(request: NextRequest) {
       if (user.role === 'CLIENT' && doc.userId !== user.id) {
         return NextResponse.json({ error: 'Forbidden: Access denied' }, { status: 403 });
       }
+
+      if (!fileKeyToUse && doc.fileUrl) {
+        try {
+          const u = new URL(doc.fileUrl, 'http://localhost');
+          fileKeyToUse = u.searchParams.get('key');
+        } catch {
+          fileKeyToUse = path.basename(doc.fileUrl);
+        }
+      }
     }
 
-    const safeKey = path.basename(key || 'doc.pdf');
+    const safeKey = path.basename(fileKeyToUse || 'doc.pdf');
     const filePath = path.join(process.cwd(), 'uploads', safeKey);
 
     if (!fs.existsSync(filePath)) {
