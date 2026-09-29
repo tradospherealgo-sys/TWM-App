@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { EmployeeNav } from '@/components/layout/EmployeeNav';
 
+export const dynamic = 'force-dynamic';
+
 export default async function EmployeeLayout({
   children,
 }: {

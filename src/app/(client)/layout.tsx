@@ -5,6 +5,8 @@ import prisma from '@/lib/prisma';
 import { ClientHeader } from '@/components/layout/ClientHeader';
 import { ClientBottomNav } from '@/components/layout/ClientBottomNav';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ClientLayout({
   children,
 }: {
