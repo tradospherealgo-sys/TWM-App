@@ -1,0 +1,304 @@
+// Prisma schema for Tradosphere Wealth Management (TWM)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------------------------------------------------
+// USER & RBAC
+// Roles: CLIENT | EMPLOYEE | ADMIN
+// Status: ACTIVE | INACTIVE | SUSPENDED
+// ------------------------------------------------------------
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  phone        String?
+  role         String   @default("CLIENT") // CLIENT | EMPLOYEE | ADMIN
+  status       String   @default("ACTIVE") // ACTIVE | INACTIVE | SUSPENDED
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  employeeProfile Employee?
+  customerProfile Customer?
+  documents       Document[]
+  notifications   Notification[]
+  watchlists      Watchlist[]
+  supportTickets  SupportTicket[]
+  activityLogs    ActivityLog[]
+}
+
+model Employee {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  employeeCode   String   @unique
+  department     String   @default("Operations")
+  designation    String   @default("Wealth Executive")
+  status         String   @default("ACTIVE")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedCustomers Customer[]
+  assignedLeads     Lead[]
+  assignedTasks     Task[]
+  assignedApplications Application[]
+  followUps         FollowUp[]
+  dailyReports      EmployeeDailyReport[]
+}
+
+model Customer {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  customerCode       String   @unique
+  pan                String?
+  kycStatus          String   @default("PENDING") // PENDING | VERIFIED | REJECTED
+  assignedEmployeeId String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedEmployee Employee?  @relation(fields: [assignedEmployeeId], references: [id])
+  applications     Application[]
+  documents        Document[]
+  tasks            Task[]
+  followUps        FollowUp[]
+}
+
+// ------------------------------------------------------------
+// CRM: LEADS & PIPELINE
+// Pipeline Stages:
+// NEW_LEAD | CONTACTED | INTERESTED | FOLLOW_UP |
+// DOCUMENTS_REQUIRED | APPLICATION | SUBMITTED | COMPLETED | LOST_CLOSED
+// ------------------------------------------------------------
+model Lead {
+  id                 String   @id @default(cuid())
+  name               String
+  email              String?
+  phone              String
+  source             String   @default("DIRECT") // DIRECT | WEBSITE | REFERRAL | CAMPAIGN
+  productInterest    String   @default("GENERAL") // DEMAT | MUTUAL_FUND | SIP | IPO | INSURANCE | LOAN
+  status             String   @default("NEW_LEAD")
+  assignedEmployeeId String?
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  assignedEmployee Employee? @relation(fields: [assignedEmployeeId], references: [id])
+  tasks            Task[]
+  followUps        FollowUp[]
+}
+
+// ------------------------------------------------------------
+// PRODUCTS CATALOG & CONFIGURATION
+// ------------------------------------------------------------
+model Product {
+  id                String   @id @default(cuid())
+  code              String   @unique // SMC_DEMAT | MUTUAL_FUNDS | SIP | IPO | LIFE_INSURANCE | HEALTH_INSURANCE | PERSONAL_LOAN | BUSINESS_LOAN
+  name              String
+  category          String   // TRADING | INVESTMENT | INSURANCE | LOAN
+  description       String
+  isActive          Boolean  @default(true)
+  requiredDocuments String   @default("[]") // JSON string of required docs
+  configJson        String   @default("{}") // Additional partner/service configs
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// ------------------------------------------------------------
+// APPLICATIONS & WORKFLOWS
+// Statuses: NEW | IN_PROGRESS | DOCUMENTS_REQUIRED | SUBMITTED |
+// UNDER_REVIEW | COMPLETED | REJECTED | CANCELLED
+// ------------------------------------------------------------
+model Application {
+  id                 String   @id @default(cuid())
+  applicationNumber  String   @unique // e.g. TWM-APP-2026-1001
+  customerId         String
+  productCategory    String   // DEMAT | MUTUAL_FUND | SIP | IPO | INSURANCE | LOAN
+  productCode        String
+  assignedEmployeeId String?
+  status             String   @default("NEW")
+  detailsJson        String   @default("{}") // Form submission details
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  customer         Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  assignedEmployee Employee?  @relation(fields: [assignedEmployeeId], references: [id])
+  documents        Document[]
+  supportTickets   SupportTicket[]
+}
+
+// ------------------------------------------------------------
+// TASKS & FOLLOW-UPS
+// ------------------------------------------------------------
+model Task {
+  id                 String    @id @default(cuid())
+  title              String
+  description        String?
+  customerId         String?
+  leadId             String?
+  assignedEmployeeId String
+  priority           String    @default("MEDIUM") // LOW | MEDIUM | HIGH | URGENT
+  dueDate            DateTime?
+  status             String    @default("PENDING") // PENDING | IN_PROGRESS | COMPLETED | OVERDUE | CANCELLED
+  completedAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  customer         Customer? @relation(fields: [customerId], references: [id])
+  lead             Lead?     @relation(fields: [leadId], references: [id])
+  assignedEmployee Employee  @relation(fields: [assignedEmployeeId], references: [id])
+}
+
+model FollowUp {
+  id          String   @id @default(cuid())
+  leadId      String?
+  customerId  String?
+  employeeId  String
+  scheduledAt DateTime
+  outcome     String?
+  notes       String?
+  nextAction  String?
+  status      String   @default("SCHEDULED") // SCHEDULED | COMPLETED | MISSED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lead     Lead?     @relation(fields: [leadId], references: [id])
+  customer Customer? @relation(fields: [customerId], references: [id])
+  employee Employee  @relation(fields: [employeeId], references: [id])
+}
+
+// ------------------------------------------------------------
+// DOCUMENTS (Secure role-gated storage)
+// ------------------------------------------------------------
+model Document {
+  id                   String   @id @default(cuid())
+  userId               String
+  customerId           String?
+  applicationId        String?
+  title                String
+  documentType         String   // PAN | AADHAAR | BANK_STATEMENT | SALARY_SLIP | ITR | APPLICATION_FORM | OTHER
+  fileUrl              String
+  fileSize             Int      @default(0)
+  mimeType             String   @default("application/pdf")
+  status               String   @default("PENDING") // PENDING | VERIFIED | REJECTED
+  verifiedByEmployeeId String?
+  notes                String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customer    Customer?    @relation(fields: [customerId], references: [id])
+  application Application? @relation(fields: [applicationId], references: [id])
+}
+
+// ------------------------------------------------------------
+// NOTIFICATIONS
+// ------------------------------------------------------------
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  category  String   @default("SYSTEM") // KYC | APPLICATION | SIP | IPO | INSURANCE | SYSTEM | TASK
+  isRead    Boolean  @default(false)
+  linkUrl   String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ------------------------------------------------------------
+// WATCHLISTS (Persisted user stock watchlists)
+// ------------------------------------------------------------
+model Watchlist {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String   @default("My Watchlist")
+  symbolsJson String   @default("[]") // e.g. ["RELIANCE", "TCS", "HDFCBANK"]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ------------------------------------------------------------
+// KNOWLEDGE BASE & SOPS
+// ------------------------------------------------------------
+model KnowledgeArticle {
+  id             String   @id @default(cuid())
+  title          String
+  category       String   // SMC_TRADING | MUTUAL_FUNDS | SIP | IPO | INSURANCE | LOANS | COMPLIANCE | SOPS
+  productCode    String?
+  content        String
+  version        Int      @default(1)
+  status         String   @default("APPROVED") // DRAFT | APPROVED | ARCHIVED
+  applicableRole String   @default("ALL")      // ALL | EMPLOYEE | ADMIN
+  authorName     String   @default("TWM Compliance")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// ------------------------------------------------------------
+// EMPLOYEE DAILY OPERATIONAL REPORTS
+// ------------------------------------------------------------
+model EmployeeDailyReport {
+  id                 String   @id @default(cuid())
+  employeeId         String
+  reportDate         DateTime @default(now())
+  callsCount         Int      @default(0)
+  contactsCount      Int      @default(0)
+  newLeadsCount      Int      @default(0)
+  followUpsCount     Int      @default(0)
+  applicationsCount  Int      @default(0)
+  documentsCount     Int      @default(0)
+  conversionsCount   Int      @default(0)
+  pendingWork        String?
+  bottlenecks        String?
+  tomorrowPriorities String?
+  submittedAt        DateTime @default(now())
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+}
+
+// ------------------------------------------------------------
+// SUPPORT TICKETS
+// ------------------------------------------------------------
+model SupportTicket {
+  id            String   @id @default(cuid())
+  userId        String
+  applicationId String?
+  subject       String
+  description   String
+  priority      String   @default("MEDIUM") // LOW | MEDIUM | HIGH
+  status        String   @default("OPEN")   // OPEN | IN_PROGRESS | RESOLVED | CLOSED
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application Application? @relation(fields: [applicationId], references: [id])
+}
+
+// ------------------------------------------------------------
+// AUDIT & ACTIVITY LOGS (Role change, application transitions, sensitive actions)
+// ------------------------------------------------------------
+model ActivityLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  actorRole   String?
+  action      String   // AUTH_LOGIN | ROLE_CHANGE | STATUS_UPDATE | DOC_VERIFY | LEAD_CREATE | ...
+  entityType  String   // User | Lead | Application | Document | Product
+  entityId    String?
+  detailsJson String   @default("{}")
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  actorUser User? @relation(fields: [actorUserId], references: [id])
+}
