@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { logActivity } from '@/lib/audit';
+import { canVerifyDocument } from '@/lib/documents/authorization';
 
 const verifySchema = z
   .object({
@@ -36,10 +37,19 @@ export async function POST(
 
     const document = await prisma.document.findUnique({
       where: { id: params.id },
+      include: {
+        customer: { select: { id: true, assignedEmployeeId: true } },
+        application: { select: { id: true, assignedEmployeeId: true } },
+      },
     });
 
     if (!document) {
       return NextResponse.json({ error: 'Document not found' }, { status: 404 });
+    }
+
+    const auth = await canVerifyDocument(user, document);
+    if (!auth.allowed) {
+      return NextResponse.json({ error: auth.reason || 'Forbidden: Cannot verify document' }, { status: auth.status });
     }
 
     const updated = await prisma.document.update({

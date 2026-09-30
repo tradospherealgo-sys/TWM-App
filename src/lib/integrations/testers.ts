@@ -366,7 +366,63 @@ export async function testStorageConnection(
   const start = Date.now();
   const driver = publicConfig.driver || process.env.STORAGE_DRIVER || 'local';
 
-  if (driver === 'local') {
+  if (driver === 'supabase') {
+    const supabaseUrl = (publicConfig.projectUrl || process.env.SUPABASE_URL || 'https://wgoelyinlffgnzrbfrwx.supabase.co').replace(/\/$/, '');
+    const serviceKey = secrets.serviceKey || process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const bucket = publicConfig.bucket || process.env.STORAGE_BUCKET_NAME || 'kyc-documents';
+
+    if (!serviceKey) {
+      return {
+        success: false,
+        status: 'NOT_CONFIGURED',
+        message: 'Supabase Storage requires service-role credentials.',
+        latencyMs: 0,
+        error: 'Missing SUPABASE_SERVICE_ROLE_KEY',
+      };
+    }
+
+    try {
+      const res = await fetch(`${supabaseUrl}/storage/v1/bucket/${bucket}`, {
+        headers: {
+          Authorization: `Bearer ${serviceKey}`,
+          apikey: serviceKey,
+        },
+      });
+
+      const latencyMs = Date.now() - start;
+      if (res.ok) {
+        const bucketData = await res.json();
+        return {
+          success: true,
+          status: 'CONNECTED',
+          message: `Supabase Private Storage Bucket '${bucket}' is active and operational.`,
+          latencyMs,
+          details: {
+            driver: 'supabase',
+            bucket,
+            isPublic: bucketData.public,
+            accessControl: 'Private Authenticated Server-Side Proxied',
+          },
+        };
+      } else {
+        return {
+          success: false,
+          status: 'CONNECTION_FAILED',
+          message: `Supabase Storage responded with HTTP ${res.status}. Check bucket name and service key.`,
+          latencyMs,
+          error: `HTTP ${res.status}`,
+        };
+      }
+    } catch (err: any) {
+      return {
+        success: false,
+        status: 'CONNECTION_FAILED',
+        message: 'Supabase Storage endpoint is unreachable.',
+        latencyMs: Date.now() - start,
+        error: err.message,
+      };
+    }
+  } else if (driver === 'local') {
     try {
       const storageDir = path.join(process.cwd(), 'uploads');
       if (!fs.existsSync(storageDir)) {

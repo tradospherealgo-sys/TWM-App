@@ -212,7 +212,7 @@ export default function ClientDocumentsPage() {
               <div>
                 <h2 className="text-base font-bold text-white">Upload KYC Document</h2>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Uploaded files are encrypted in the local vault.
+                  Uploaded files are encrypted in the private compliance vault.
                 </p>
               </div>
               <button
