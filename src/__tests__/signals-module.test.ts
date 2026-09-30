@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import prisma from '../lib/prisma';
 import {
   runAtlasReview,
@@ -25,10 +25,64 @@ describe('TWM Signals & Market Intelligence Module', () => {
   let employeeUser: any;
   let clientUser: any;
 
-  beforeEach(async () => {
-    adminUser = await prisma.user.findUnique({ where: { email: 'admin@tradosphere.in' } });
-    employeeUser = await prisma.user.findUnique({ where: { email: 'employee@tradosphere.in' } });
-    clientUser = await prisma.user.findUnique({ where: { email: 'client@tradosphere.in' } });
+  beforeAll(async () => {
+    adminUser = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
+    if (!adminUser) {
+      adminUser = await prisma.user.create({
+        data: {
+          email: 'test-signals-admin@twm-test.internal',
+          name: 'Test Signals Admin',
+          passwordHash: 'dummy_hash',
+          role: 'ADMIN',
+          status: 'ACTIVE',
+        },
+      });
+    }
+
+    employeeUser = await prisma.user.findFirst({ where: { role: 'EMPLOYEE' } });
+    if (!employeeUser) {
+      employeeUser = await prisma.user.create({
+        data: {
+          email: 'test-signals-employee@twm-test.internal',
+          name: 'Test Signals Employee',
+          passwordHash: 'dummy_hash',
+          role: 'EMPLOYEE',
+          status: 'ACTIVE',
+        },
+      });
+    }
+
+    clientUser = await prisma.user.findFirst({ where: { role: 'CLIENT' } });
+    if (!clientUser) {
+      clientUser = await prisma.user.create({
+        data: {
+          email: 'test-signals-client@twm-test.internal',
+          name: 'Test Signals Client',
+          passwordHash: 'dummy_hash',
+          role: 'CLIENT',
+          status: 'ACTIVE',
+        },
+      });
+    }
+  });
+
+  afterAll(async () => {
+    if (clientUser) {
+      await prisma.subscription.deleteMany({ where: { userId: clientUser.id } });
+    }
+    await prisma.activityLog.deleteMany({
+      where: {
+        actorUserId: {
+          in: [adminUser?.id, employeeUser?.id, clientUser?.id].filter(Boolean),
+        },
+      },
+    });
+    await prisma.signalAiReview.deleteMany({});
+    await prisma.signalVersion.deleteMany({});
+    await prisma.signal.deleteMany({});
+    await prisma.user.deleteMany({
+      where: { email: { endsWith: '@twm-test.internal' } },
+    });
   });
 
   describe('1. Six-Agent AI Review Team Non-Advisory Behavior', () => {

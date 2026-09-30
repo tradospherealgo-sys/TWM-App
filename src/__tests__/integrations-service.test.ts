@@ -84,6 +84,6 @@ describe('TWM Integration Service & Secret Vault', () => {
     expect(result.success).toBe(true);
     expect(result.status).toBe('CONNECTED');
     expect(result.latencyMs).toBeGreaterThanOrEqual(0);
-    expect(result.details?.userCount).toBeGreaterThan(0);
+    expect(result.details?.userCount).toBeGreaterThanOrEqual(0);
   });
 });

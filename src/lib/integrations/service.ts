@@ -60,8 +60,10 @@ export async function ensureIntegrationDefaults(): Promise<void> {
 
       const { encryptedJson, maskedJson } = encryptSecretsMap(initialSecrets);
 
-      await prisma.integrationConfig.create({
-        data: {
+      await prisma.integrationConfig.upsert({
+        where: { providerKey },
+        update: {},
+        create: {
           providerKey,
           name: meta.name,
           category: meta.category,
@@ -256,10 +258,17 @@ export async function saveIntegration(
     },
   });
 
+  // Resolve valid actor user ID for FK constraint
+  let validActorId: string | null = null;
+  if (adminUserId) {
+    const user = await prisma.user.findUnique({ where: { id: adminUserId }, select: { id: true } });
+    if (user) validActorId = user.id;
+  }
+
   // Audit log entry (NEVER log the secret itself)
   await prisma.activityLog.create({
     data: {
-      actorUserId: adminUserId,
+      actorUserId: validActorId,
       actorRole: 'ADMIN',
       action: 'INTEGRATION_UPDATE',
       entityType: 'IntegrationConfig',
@@ -306,9 +315,16 @@ export async function rotateIntegrationSecret(
     },
   });
 
+  // Resolve valid actor user ID for FK constraint
+  let validActorId: string | null = null;
+  if (adminUserId) {
+    const user = await prisma.user.findUnique({ where: { id: adminUserId }, select: { id: true } });
+    if (user) validActorId = user.id;
+  }
+
   await prisma.activityLog.create({
     data: {
-      actorUserId: adminUserId,
+      actorUserId: validActorId,
       actorRole: 'ADMIN',
       action: 'INTEGRATION_CREDENTIAL_ROTATED',
       entityType: 'IntegrationConfig',

@@ -54,19 +54,7 @@ function LoginForm() {
     }
   }
 
-  function setQuickCredentials(role: 'CLIENT' | 'EMPLOYEE' | 'ADMIN') {
-    setError(null);
-    if (role === 'ADMIN') {
-      setEmail('admin@tradosphere.in');
-      setPassword('Admin@123456');
-    } else if (role === 'EMPLOYEE') {
-      setEmail('employee@tradosphere.in');
-      setPassword('Employee@123456');
-    } else {
-      setEmail('client@tradosphere.in');
-      setPassword('Client@123456');
-    }
-  }
+
 
   return (
     <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -129,35 +117,7 @@ function LoginForm() {
           </Button>
         </form>
 
-        {/* Role test accounts quick-fill */}
-        <div className="mt-6 pt-5 border-t border-slate-800/80">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2.5 text-center">
-            Quick Role Test Fill
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              type="button"
-              onClick={() => setQuickCredentials('CLIENT')}
-              className="px-2 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-[11px] font-medium text-slate-200 border border-slate-700 transition-colors"
-            >
-              Client
-            </button>
-            <button
-              type="button"
-              onClick={() => setQuickCredentials('EMPLOYEE')}
-              className="px-2 py-1.5 rounded-lg bg-emerald-950/70 hover:bg-emerald-900/60 text-[11px] font-medium text-emerald-300 border border-emerald-800/60 transition-colors"
-            >
-              Employee
-            </button>
-            <button
-              type="button"
-              onClick={() => setQuickCredentials('ADMIN')}
-              className="px-2 py-1.5 rounded-lg bg-red-950/70 hover:bg-red-900/60 text-[11px] font-medium text-red-300 border border-red-800/60 transition-colors"
-            >
-              Admin
-            </button>
-          </div>
-        </div>
+
       </div>
 
       {/* Regulatory disclaimer */}
