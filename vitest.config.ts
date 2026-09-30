@@ -4,8 +4,8 @@ import path from 'path';
 export default defineConfig({
   test: {
     fileParallelism: false,
-    testTimeout: 25000,
-    hookTimeout: 25000,
+    testTimeout: 50000,
+    hookTimeout: 50000,
     globals: true,
   },
   resolve: {

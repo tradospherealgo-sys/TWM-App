@@ -15,10 +15,13 @@ const IV_LENGTH = 12; // 96-bit IV recommended for AES-GCM
 const AUTH_TAG_LENGTH = 16; // 128-bit authentication tag
 
 function getMasterKey(): Buffer {
-  const secret =
-    process.env.INTEGRATION_ENCRYPTION_KEY ||
-    process.env.JWT_SECRET ||
-    'twm_production_default_master_encryption_key_change_in_env_32_bytes!';
+  const secret = process.env.INTEGRATION_ENCRYPTION_KEY;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('FATAL: INTEGRATION_ENCRYPTION_KEY is required in production and must not fall back to JWT_SECRET');
+    }
+    return crypto.createHash('sha256').update('twm_dev_master_encryption_key_32_bytes!').digest();
+  }
   return crypto.createHash('sha256').update(secret).digest();
 }
 

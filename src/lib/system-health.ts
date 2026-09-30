@@ -148,7 +148,7 @@ export async function runSystemHealthCheck(): Promise<SystemHealthReport> {
 
   // 6. Master Encryption Vault
   const hasEncryptionKey = Boolean(
-    process.env.INTEGRATION_ENCRYPTION_KEY || process.env.JWT_SECRET
+    process.env.INTEGRATION_ENCRYPTION_KEY && process.env.INTEGRATION_ENCRYPTION_KEY.length >= 32
   );
   if (hasEncryptionKey) {
     subsystems.push({
@@ -168,7 +168,7 @@ export async function runSystemHealthCheck(): Promise<SystemHealthReport> {
       category: 'SECURITY',
       status: 'ERROR',
       statusLabel: 'ERROR',
-      message: 'INTEGRATION_ENCRYPTION_KEY or JWT_SECRET required for credential vault.',
+      message: 'INTEGRATION_ENCRYPTION_KEY (min 32 chars) required for independent credential vault.',
       isBlocker: true,
     });
   }

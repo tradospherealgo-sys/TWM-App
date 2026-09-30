@@ -96,58 +96,17 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Activate 30-day subscription
-    const startDate = new Date();
-    const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    if (action === 'SUBSCRIBE') {
+      return NextResponse.json(
+        {
+          error: 'Online payment gateway integration is currently pending activation. Direct subscription enrollment without payment verification is disabled in production.',
+          code: 'PAYMENT_GATEWAY_PENDING',
+        },
+        { status: 403 }
+      );
+    }
 
-    const subscription = await prisma.subscription.create({
-      data: {
-        userId: user.id,
-        planId: plan.id,
-        status: 'ACTIVE',
-        startDate,
-        endDate,
-        autoRenew: false,
-      },
-    });
-
-    await prisma.subscriptionEvent.create({
-      data: {
-        subscriptionId: subscription.id,
-        eventType: 'ACTIVATED',
-        detailsJson: JSON.stringify({
-          planCode: plan.code,
-          price: plan.price,
-          currency: plan.currency,
-          channel: 'DIRECT_ENROLLMENT',
-        }),
-      },
-    });
-
-    await prisma.notification.create({
-      data: {
-        userId: user.id,
-        title: 'TWM Signals Subscription Activated',
-        message: `Welcome to TWM Signals & Market Intelligence. You now have full access to research and 6-Agent AI reviews.`,
-        category: 'MARKET_DATA',
-        linkUrl: '/signals',
-      },
-    });
-
-    await logActivity({
-      actorUserId: user.id,
-      actorRole: user.role,
-      action: 'SUBSCRIPTION_ACTIVATE',
-      entityType: 'Subscription',
-      entityId: subscription.id,
-      details: { planCode: plan.code, amount: plan.price },
-    });
-
-    return NextResponse.json({
-      success: true,
-      message: 'Subscription successfully activated. You now have full access to TWM Signals.',
-      subscription,
-    });
+    return NextResponse.json({ error: 'Invalid subscription action requested' }, { status: 400 });
   } catch (error: any) {
     console.error('Error handling subscription action:', error);
     return NextResponse.json({ error: error.message || 'Subscription processing failed' }, { status: 500 });
