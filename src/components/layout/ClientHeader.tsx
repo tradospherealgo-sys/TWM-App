@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Bell, Shield, LogOut } from 'lucide-react';
 
+import { NotificationCenter } from '@/components/notifications/NotificationCenter';
+
 interface ClientHeaderProps {
   userName?: string;
   unreadNotificationsCount?: number;
@@ -46,17 +48,8 @@ export function ClientHeader({
 
         {/* Header Right Actions */}
         <div className="flex items-center gap-2">
-          {/* Notifications */}
-          <Link
-            href="/applications"
-            className="relative p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/60 active:scale-95 transition-all"
-            aria-label="Notifications"
-          >
-            <Bell className="w-5 h-5" />
-            {unreadNotificationsCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-            )}
-          </Link>
+          {/* Notification Center */}
+          <NotificationCenter initialUnreadCount={unreadNotificationsCount} />
 
           {/* User profile / Logout */}
           <div className="flex items-center gap-1.5 pl-2 border-l border-slate-800">

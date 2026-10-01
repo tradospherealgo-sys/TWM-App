@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { logActivity } from '@/lib/audit';
 import { sanitizeApiError } from '@/lib/errors';
+import { createNotification } from '@/lib/notifications';
 
 const updateTicketSchema = z.object({
   status: z.enum(['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']).optional(),
@@ -65,6 +66,18 @@ export async function PATCH(
         hasNotes: Boolean(resolutionNotes),
       },
     });
+
+    // Notify ticket author
+    if (existing.userId) {
+      const newStatus = status || existing.status;
+      await createNotification({
+        userId: existing.userId,
+        title: `Support Ticket: ${newStatus}`,
+        message: `Your ticket #${existing.ticketNumber} (${existing.subject}) has been updated.${resolutionNotes ? ` Resolution: ${resolutionNotes}` : ''}`,
+        category: 'SUPPORT',
+        linkUrl: '/support',
+      });
+    }
 
     return NextResponse.json({ success: true, ticket: updated });
   } catch (error: any) {

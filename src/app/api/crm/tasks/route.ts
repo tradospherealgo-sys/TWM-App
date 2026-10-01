@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { logActivity } from '@/lib/audit';
 import { sanitizeApiError } from '@/lib/errors';
+import { notifyEmployee } from '@/lib/notifications';
 
 const createTaskSchema = z.object({
   title: z.string().min(1, 'Title required'),
@@ -118,6 +119,16 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    if (task.assignedEmployeeId && task.assignedEmployeeId !== user.employeeProfile?.id) {
+      await notifyEmployee({
+        employeeId: task.assignedEmployeeId,
+        title: `New Task Assigned: ${task.title}`,
+        message: `Priority: ${task.priority}`,
+        category: 'TASK',
+        linkUrl: '/employee/tasks',
+      });
+    }
+
     return NextResponse.json({ success: true, task });
   } catch (error) {
     return NextResponse.json(sanitizeApiError(error, 'Failed to create task'), { status: 500 });
@@ -194,6 +205,16 @@ export async function PATCH(request: NextRequest) {
           taskTitle: existing.title,
         },
       });
+
+      if (assignedEmployeeId && assignedEmployeeId !== user.employeeProfile?.id) {
+        await notifyEmployee({
+          employeeId: assignedEmployeeId,
+          title: `Task Assigned to You: ${existing.title}`,
+          message: `Priority: ${priority || existing.priority}`,
+          category: 'TASK',
+          linkUrl: '/employee/tasks',
+        });
+      }
     }
 
     await logActivity({

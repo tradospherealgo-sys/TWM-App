@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { logActivity } from '@/lib/audit';
 import { sanitizeApiError } from '@/lib/errors';
+import { notifyEmployee } from '@/lib/notifications';
 
 const createLeadSchema = z.object({
   name: z.string().min(1, 'Lead name required'),
@@ -137,6 +138,16 @@ export async function POST(request: NextRequest) {
       details: { name: lead.name, productInterest: lead.productInterest },
     });
 
+    if (lead.assignedEmployeeId && lead.assignedEmployeeId !== user.employeeProfile?.id) {
+      await notifyEmployee({
+        employeeId: lead.assignedEmployeeId,
+        title: 'New Lead Assigned',
+        message: `Lead "${lead.name}" (${lead.productInterest}) has been assigned to you.`,
+        category: 'LEAD',
+        linkUrl: '/employee/leads',
+      });
+    }
+
     return NextResponse.json({ success: true, lead });
   } catch (error) {
     return NextResponse.json(sanitizeApiError(error, 'Failed to create lead'), { status: 500 });
@@ -216,6 +227,16 @@ export async function PATCH(request: NextRequest) {
           leadName: existing.name,
         },
       });
+
+      if (assignedEmployeeId && assignedEmployeeId !== user.employeeProfile?.id) {
+        await notifyEmployee({
+          employeeId: assignedEmployeeId,
+          title: 'Lead Assigned to You',
+          message: `Lead "${existing.name}" (${existing.productInterest}) has been assigned to you.`,
+          category: 'LEAD',
+          linkUrl: '/employee/leads',
+        });
+      }
     }
 
     await logActivity({

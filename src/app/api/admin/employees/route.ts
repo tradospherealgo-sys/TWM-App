@@ -5,6 +5,7 @@ import { getCurrentUser, hashPassword } from '@/lib/auth';
 import { generateUniqueEmployeeCode } from '@/lib/employee';
 import { logActivity } from '@/lib/audit';
 import { sanitizeApiError } from '@/lib/errors';
+import { notifyAdmins } from '@/lib/notifications';
 
 const createEmployeeSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(100),
@@ -142,6 +143,14 @@ export async function POST(request: NextRequest) {
         role: result.user.role,
       },
       ipAddress: request.headers.get('x-forwarded-for') || 'local',
+    });
+
+    // Notify active administrators about newly provisioned staff member
+    await notifyAdmins({
+      title: `Staff Account Provisioned: ${result.user.name}`,
+      message: `${result.user.role} account created in ${result.employee.department} (${result.employee.designation}) with code ${result.employee.employeeCode}.`,
+      category: 'STAFF',
+      linkUrl: '/admin/employees',
     });
 
     return NextResponse.json(

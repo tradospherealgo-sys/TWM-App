@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { getCurrentUser, verifyPassword, hashPassword, signSessionToken, SESSION_COOKIE_NAME, UserRole } from '@/lib/auth';
 import { logActivity } from '@/lib/audit';
 import { sanitizeApiError } from '@/lib/errors';
+import { createNotification } from '@/lib/notifications';
 
 // Production password policy: min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
 const changePasswordSchema = z
@@ -97,6 +98,15 @@ export async function POST(request: NextRequest) {
       entityId: user.id,
       details: { email: user.email },
       ipAddress: request.headers.get('x-forwarded-for') || 'local',
+    });
+
+    // In-app security notification
+    await createNotification({
+      userId: user.id,
+      title: 'Security Alert: Password Changed',
+      message: 'Your account password was updated successfully. If you did not make this change, please contact security immediately.',
+      category: 'SECURITY',
+      linkUrl: '/account',
     });
 
     const response = NextResponse.json({

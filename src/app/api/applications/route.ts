@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { getCurrentUser, hashPassword } from '@/lib/auth';
 import { generateUniqueCustomerCode } from '@/lib/onboarding';
 import { logActivity } from '@/lib/audit';
+import { notifyEmployee } from '@/lib/notifications';
 
 const createApplicationSchema = z.object({
   productCategory: z.enum(['DEMAT', 'MUTUAL_FUND', 'SIP', 'IPO', 'INSURANCE', 'LOAN']),
@@ -264,6 +265,16 @@ export async function POST(request: NextRequest) {
           category: 'APPLICATION',
           linkUrl: `/applications`,
         },
+      });
+    }
+
+    if (targetEmployeeId && targetEmployeeId !== user.employeeProfile?.id) {
+      await notifyEmployee({
+        employeeId: targetEmployeeId,
+        title: `Application Assigned: #${application.applicationNumber}`,
+        message: `Application for ${productCategory} has been assigned to your desk.`,
+        category: 'APPLICATION',
+        linkUrl: '/employee/applications',
       });
     }
 

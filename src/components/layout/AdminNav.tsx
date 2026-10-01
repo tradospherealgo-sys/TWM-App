@@ -16,6 +16,7 @@ import {
   Activity,
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 
 export function AdminNav({ adminName = 'Administrator' }: { adminName?: string }) {
   const pathname = usePathname();
@@ -81,9 +82,10 @@ export function AdminNav({ adminName = 'Administrator' }: { adminName?: string }
           })}
         </nav>
 
-        {/* User profile & Logout */}
-        <div className="flex items-center gap-3">
-          <div className="text-right">
+        {/* User profile, Notifications & Logout */}
+        <div className="flex items-center gap-2.5">
+          <NotificationCenter />
+          <div className="text-right hidden sm:block">
             <div className="text-xs font-semibold text-slate-200">{adminName}</div>
             <div className="text-[10px] text-red-400 font-medium">Principal Admin</div>
           </div>

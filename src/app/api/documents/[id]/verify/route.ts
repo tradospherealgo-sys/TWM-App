@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { logActivity } from '@/lib/audit';
 import { canVerifyDocument } from '@/lib/documents/authorization';
 import { sanitizeApiError } from '@/lib/errors';
+import { createNotification } from '@/lib/notifications';
 
 const verifySchema = z
   .object({
@@ -42,7 +43,7 @@ export async function POST(
     const document = await prisma.document.findUnique({
       where: { id: params.id },
       include: {
-        customer: { select: { id: true, assignedEmployeeId: true } },
+        customer: { select: { id: true, userId: true, assignedEmployeeId: true } },
         application: { select: { id: true, assignedEmployeeId: true } },
       },
     });
@@ -64,6 +65,28 @@ export async function POST(
         verifiedByEmployeeId: user.employeeProfile?.id || null,
       },
     });
+
+    // Notify the customer about the verification outcome
+    const targetUserId = document.userId || document.customer?.userId;
+    if (targetUserId) {
+      if (status === 'VERIFIED') {
+        await createNotification({
+          userId: targetUserId,
+          title: 'Document Verified',
+          message: `Your document "${document.title}" (${document.documentType}) has been verified successfully.`,
+          category: 'KYC',
+          linkUrl: '/documents',
+        });
+      } else if (status === 'REJECTED') {
+        await createNotification({
+          userId: targetUserId,
+          title: 'Document Action Required',
+          message: `Your document "${document.title}" (${document.documentType}) requires attention. Reason: ${notes || 'Please upload a clear copy.'}`,
+          category: 'KYC',
+          linkUrl: '/documents',
+        });
+      }
+    }
 
     await logActivity({
       actorUserId: user.id,

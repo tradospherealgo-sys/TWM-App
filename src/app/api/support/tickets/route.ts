@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { logActivity } from '@/lib/audit';
+import { notifyEmployee, notifyAdmins } from '@/lib/notifications';
 
 const createTicketSchema = z.object({
   subject: z.string().min(3, 'Subject must be at least 3 characters'),
@@ -105,6 +106,24 @@ export async function POST(request: NextRequest) {
       entityId: ticket.id,
       details: { ticketNumber, subject, priority },
     });
+
+    // Notify assigned staff or admins
+    if (assignedEmployeeId) {
+      await notifyEmployee({
+        employeeId: assignedEmployeeId,
+        title: `Support Ticket Assigned: #${ticketNumber}`,
+        message: `Customer ${user.name} reported: "${subject}" (Priority: ${priority})`,
+        category: 'SUPPORT',
+        linkUrl: '/employee/support',
+      });
+    } else {
+      await notifyAdmins({
+        title: `New Support Ticket: #${ticketNumber}`,
+        message: `Customer ${user.name} submitted ticket: "${subject}"`,
+        category: 'SUPPORT',
+        linkUrl: '/employee/support',
+      });
+    }
 
     return NextResponse.json({ success: true, ticket });
   } catch (error: any) {

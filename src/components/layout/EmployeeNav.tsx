@@ -16,6 +16,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 
 export function EmployeeNav({ employeeName = 'Employee' }: { employeeName?: string }) {
   const pathname = usePathname();
@@ -81,9 +82,10 @@ export function EmployeeNav({ employeeName = 'Employee' }: { employeeName?: stri
           })}
         </nav>
 
-        {/* User profile & Logout */}
-        <div className="flex items-center gap-3">
-          <div className="text-right">
+        {/* User profile, Notifications & Logout */}
+        <div className="flex items-center gap-2.5">
+          <NotificationCenter />
+          <div className="text-right hidden sm:block">
             <div className="text-xs font-semibold text-slate-200">{employeeName}</div>
             <div className="text-[10px] text-slate-400">Operations</div>
           </div>

@@ -259,9 +259,14 @@ export default async function ClientHomePage() {
       {/* 6. Notifications Feed */}
       {notifications.length > 0 && (
         <div className="space-y-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Recent Updates
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Recent Updates
+            </h2>
+            <Link href="/notifications" className="text-xs text-blue-400 hover:text-blue-300">
+              View all →
+            </Link>
+          </div>
           {notifications.map((n) => (
             <div key={n.id} className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs">
               <div className="font-semibold text-slate-200">{n.title}</div>
