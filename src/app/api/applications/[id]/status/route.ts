@@ -50,6 +50,19 @@ export async function PATCH(
       return NextResponse.json({ error: 'Application not found' }, { status: 404 });
     }
 
+    // Horizontal access control:
+    // If EMPLOYEE, verify application is assigned to this employee
+    if (
+      user.role === 'EMPLOYEE' &&
+      existing.assignedEmployeeId &&
+      existing.assignedEmployeeId !== user.employeeProfile?.id
+    ) {
+      return NextResponse.json(
+        { error: 'Forbidden: You are not authorized to update applications assigned to other staff' },
+        { status: 403 }
+      );
+    }
+
     const updated = await prisma.application.update({
       where: { id: params.id },
       data: {

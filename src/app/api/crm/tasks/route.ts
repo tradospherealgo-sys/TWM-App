@@ -20,6 +20,8 @@ const updateTaskSchema = z.object({
   status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'OVERDUE', 'CANCELLED']).optional(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
   description: z.string().optional(),
+  assignedEmployeeId: z.string().optional(),
+  dueDate: z.string().optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -138,14 +140,35 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid update', details: parsed.error.flatten() }, { status: 400 });
     }
 
-    const { id, status, priority, description } = parsed.data;
+    const { id, status, priority, description, assignedEmployeeId, dueDate } = parsed.data;
 
     const existing = await prisma.task.findUnique({ where: { id } });
     if (!existing) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
-    const completedAt = status === 'COMPLETED' ? new Date() : existing.completedAt;
+    // Horizontal access control:
+    // If user is EMPLOYEE:
+    // 1. Must be assigned to this task
+    // 2. Cannot reassign task to another employee
+    if (user.role === 'EMPLOYEE') {
+      const myEmpId = user.employeeProfile?.id;
+      if (existing.assignedEmployeeId !== myEmpId) {
+        return NextResponse.json(
+          { error: 'Forbidden: You can only update tasks assigned to you' },
+          { status: 403 }
+        );
+      }
+      if (assignedEmployeeId && assignedEmployeeId !== myEmpId) {
+        return NextResponse.json(
+          { error: 'Forbidden: Only administrators can reassign tasks to other staff' },
+          { status: 403 }
+        );
+      }
+    }
+
+    const completedAt = status === 'COMPLETED' ? new Date() : (status ? null : existing.completedAt);
+    const isReassigning = assignedEmployeeId && assignedEmployeeId !== existing.assignedEmployeeId;
 
     const updated = await prisma.task.update({
       where: { id },
@@ -153,16 +176,37 @@ export async function PATCH(request: NextRequest) {
         ...(status && { status, completedAt }),
         ...(priority && { priority }),
         ...(description && { description }),
+        ...(assignedEmployeeId && { assignedEmployeeId }),
+        ...(dueDate && { dueDate: new Date(dueDate) }),
       },
     });
+
+    if (isReassigning) {
+      await logActivity({
+        actorUserId: user.id,
+        actorRole: user.role,
+        action: 'TASK_ASSIGN',
+        entityType: 'Task',
+        entityId: id,
+        details: {
+          previousAssignee: existing.assignedEmployeeId,
+          newAssignee: assignedEmployeeId,
+          taskTitle: existing.title,
+        },
+      });
+    }
 
     await logActivity({
       actorUserId: user.id,
       actorRole: user.role,
-      action: 'TASK_UPDATE',
+      action: status === 'COMPLETED' ? 'TASK_COMPLETE' : 'TASK_UPDATE',
       entityType: 'Task',
       entityId: id,
-      details: { previousStatus: existing.status, newStatus: status },
+      details: {
+        previousStatus: existing.status,
+        newStatus: status || existing.status,
+        priority: priority || existing.priority,
+      },
     });
 
     return NextResponse.json({ success: true, task: updated });

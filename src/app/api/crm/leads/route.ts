@@ -166,6 +166,34 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
     }
 
+    // Horizontal access & assignment permission rules:
+    // 1. If assignedEmployeeId is provided:
+    //    - ADMIN can assign or reassign any lead to any employee.
+    //    - EMPLOYEE can only assign an unassigned lead (existing.assignedEmployeeId === null) to themselves.
+    //    - EMPLOYEE cannot reassign another employee's lead to anyone else.
+    const isReassigning = assignedEmployeeId !== undefined && assignedEmployeeId !== existing.assignedEmployeeId;
+    if (isReassigning) {
+      if (user.role === 'EMPLOYEE') {
+        const myEmpId = user.employeeProfile?.id;
+        const isClaimingUnassigned = existing.assignedEmployeeId === null && assignedEmployeeId === myEmpId;
+        if (!isClaimingUnassigned) {
+          return NextResponse.json(
+            { error: 'Forbidden: Only administrators can reassign leads between staff' },
+            { status: 403 }
+          );
+        }
+      }
+    }
+
+    // 2. If employee is updating status or notes:
+    //    - Must be assigned to this lead, or lead is unassigned, or user is ADMIN
+    if (user.role === 'EMPLOYEE' && existing.assignedEmployeeId && existing.assignedEmployeeId !== user.employeeProfile?.id) {
+      return NextResponse.json(
+        { error: 'Forbidden: You can only update leads assigned to you' },
+        { status: 403 }
+      );
+    }
+
     const updated = await prisma.lead.update({
       where: { id },
       data: {
@@ -174,6 +202,21 @@ export async function PATCH(request: NextRequest) {
         ...(assignedEmployeeId !== undefined && { assignedEmployeeId }),
       },
     });
+
+    if (isReassigning) {
+      await logActivity({
+        actorUserId: user.id,
+        actorRole: user.role,
+        action: 'LEAD_ASSIGN',
+        entityType: 'Lead',
+        entityId: updated.id,
+        details: {
+          previousAssignee: existing.assignedEmployeeId,
+          newAssignee: assignedEmployeeId,
+          leadName: existing.name,
+        },
+      });
+    }
 
     await logActivity({
       actorUserId: user.id,
