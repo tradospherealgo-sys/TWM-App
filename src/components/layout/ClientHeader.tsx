@@ -30,7 +30,7 @@ export function ClientHeader({
 
   return (
     <header className="sticky top-0 z-40 bg-[#0B111E]/95 backdrop-blur border-b border-slate-800/80 px-4 py-3">
-      <div className="max-w-md mx-auto flex items-center justify-between">
+      <div className="max-w-md md:max-w-lg lg:max-w-xl mx-auto flex items-center justify-between">
         {/* Brand identity */}
         <Link href="/home" className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shadow-sm text-sm">

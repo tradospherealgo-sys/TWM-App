@@ -20,7 +20,7 @@ export function ClientBottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0B111E]/95 backdrop-blur-md border-t border-slate-800/80 pb-safe">
-      <div className="max-w-md mx-auto grid grid-cols-6 h-16">
+      <div className="max-w-md md:max-w-lg lg:max-w-xl mx-auto grid grid-cols-6 h-16">
         {navItems.map((item) => {
           const isActive = pathname === item.href || (item.href !== '/home' && pathname?.startsWith(item.href));
           const Icon = item.icon;

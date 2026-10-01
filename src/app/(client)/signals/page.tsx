@@ -14,8 +14,7 @@ import {
   Sparkles,
   ExternalLink,
 } from 'lucide-react';
-import { ClientHeader } from '@/components/layout/ClientHeader';
-import { ClientBottomNav } from '@/components/layout/ClientBottomNav';
+
 
 interface SignalItem {
   id: string;
@@ -122,10 +121,7 @@ export default function ClientSignalsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B111E] text-slate-100 pb-24">
-      <ClientHeader />
-
-      <main className="max-w-md mx-auto px-4 pt-4 space-y-5">
+    <div className="space-y-5">
         {/* Module Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -336,9 +332,6 @@ export default function ClientSignalsPage() {
             Tradosphere Wealth Management acts as an Authorised Person of SMC Global Securities Ltd. All signals and market intelligence provided through this module are strictly for educational and informational purposes and do not constitute personal investment advice or price targets. Trade execution occurs exclusively on SMC Ace.
           </p>
         </div>
-      </main>
-
-      <ClientBottomNav />
     </div>
   );
 }

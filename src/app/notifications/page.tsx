@@ -21,6 +21,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
+  ArrowLeft,
 } from 'lucide-react';
 import type { NotificationItem } from '@/components/notifications/NotificationCenter';
 
@@ -138,6 +139,16 @@ export default function NotificationsPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 py-6 px-4">
+      {/* Back button */}
+      <div>
+        <button
+          onClick={() => router.back()}
+          className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
+        </button>
+      </div>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2 border-b border-slate-800">
         <div>

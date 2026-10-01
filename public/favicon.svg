@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <rect width="512" height="512" rx="128" fill="#0B111E"/>
+  <rect x="45" y="45" width="422" height="422" rx="64" fill="#182B49" stroke="#F59E0B" stroke-width="8"/>
+  <rect x="61" y="61" width="390" height="14" rx="7" fill="#F59E0B"/>
+  
+  <!-- T -->
+  <rect x="115" y="170" width="80" height="24" rx="4" fill="#FFFFFF"/>
+  <rect x="143" y="170" width="24" height="140" rx="4" fill="#FFFFFF"/>
+  
+  <!-- W -->
+  <path d="M210 170 L226 170 L242 310 L226 310 Z" fill="#FFFFFF"/>
+  <path d="M242 310 L258 220 L270 220 L254 310 Z" fill="#FFFFFF"/>
+  <path d="M254 310 L270 220 L282 220 L266 310 Z" fill="#FFFFFF"/>
+  <path d="M282 170 L298 170 L282 310 L266 310 Z" fill="#FFFFFF"/>
+  
+  <!-- M -->
+  <rect x="318" y="170" width="24" height="140" rx="4" fill="#FFFFFF"/>
+  <rect x="374" y="170" width="24" height="140" rx="4" fill="#FFFFFF"/>
+  <polygon points="342,170 358,170 368,280 350,280" fill="#FFFFFF"/>
+  <polygon points="374,170 358,170 350,280 368,280" fill="#FFFFFF"/>
+  
+  <!-- Subtitle badge -->
+  <rect x="130" y="346" width="252" height="38" rx="19" fill="#0B1728" stroke="#2563EB" stroke-width="3"/>
+  <circle cx="156" cy="365" r="7" fill="#F59E0B"/>
+  <rect x="175" y="360" width="185" height="10" rx="4" fill="#93C5FD"/>
+</svg>

@@ -16,10 +16,15 @@ interface JWTPayload {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Static assets bypass
+  // Static assets and PWA public files bypass
   if (
     pathname.startsWith('/_next') ||
-    pathname.startsWith('/favicon.ico')
+    pathname.startsWith('/favicon.ico') ||
+    pathname.startsWith('/favicon.svg') ||
+    pathname.startsWith('/icons/') ||
+    pathname === '/manifest.json' ||
+    pathname === '/sw.js' ||
+    pathname === '/offline'
   ) {
     return applySecurityHeaders(NextResponse.next());
   }
@@ -133,8 +138,11 @@ export const config = {
      * Match all request paths except for the ones starting with:
      * - _next/static (static files)
      * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
+     * - favicon.ico, favicon.svg
+     * - icons
+     * - manifest.json
+     * - sw.js
      */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico|favicon.svg|icons/|manifest.json|sw.js).*)',
   ],
 };
