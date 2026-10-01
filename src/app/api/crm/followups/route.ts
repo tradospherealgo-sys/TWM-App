@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { logActivity } from '@/lib/audit';
+import { sanitizeApiError } from '@/lib/errors';
 
 const createFollowUpSchema = z.object({
   leadId: z.string().optional(),
@@ -16,38 +17,48 @@ const createFollowUpSchema = z.object({
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
-  if (!user || (user.role !== 'EMPLOYEE' && user.role !== 'ADMIN')) {
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+  }
+  if (user.role !== 'EMPLOYEE' && user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden: Staff access required' }, { status: 403 });
   }
 
-  const { searchParams } = new URL(request.url);
-  const leadId = searchParams.get('leadId');
-  const customerId = searchParams.get('customerId');
+  try {
+    const { searchParams } = new URL(request.url);
+    const leadId = searchParams.get('leadId');
+    const customerId = searchParams.get('customerId');
 
-  const whereClause: Record<string, unknown> = {};
-  if (leadId) whereClause.leadId = leadId;
-  if (customerId) whereClause.customerId = customerId;
+    const whereClause: Record<string, unknown> = {};
+    if (leadId) whereClause.leadId = leadId;
+    if (customerId) whereClause.customerId = customerId;
 
-  if (user.role === 'EMPLOYEE' && user.employeeProfile) {
-    whereClause.employeeId = user.employeeProfile.id;
+    if (user.role === 'EMPLOYEE' && user.employeeProfile) {
+      whereClause.employeeId = user.employeeProfile.id;
+    }
+
+    const followUps = await prisma.followUp.findMany({
+      where: whereClause,
+      include: {
+        lead: { select: { name: true, phone: true, productInterest: true } },
+        customer: { include: { user: { select: { name: true, phone: true } } } },
+        employee: { include: { user: { select: { name: true } } } },
+      },
+      orderBy: { scheduledAt: 'desc' },
+    });
+
+    return NextResponse.json({ followUps });
+  } catch (error) {
+    return NextResponse.json(sanitizeApiError(error, 'Failed to fetch follow-ups'), { status: 500 });
   }
-
-  const followUps = await prisma.followUp.findMany({
-    where: whereClause,
-    include: {
-      lead: { select: { name: true, phone: true, productInterest: true } },
-      customer: { include: { user: { select: { name: true, phone: true } } } },
-      employee: { include: { user: { select: { name: true } } } },
-    },
-    orderBy: { scheduledAt: 'desc' },
-  });
-
-  return NextResponse.json({ followUps });
 }
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
-  if (!user || (user.role !== 'EMPLOYEE' && user.role !== 'ADMIN')) {
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+  }
+  if (user.role !== 'EMPLOYEE' && user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden: Staff access required' }, { status: 403 });
   }
 
@@ -110,7 +121,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, followUp });
   } catch (error) {
-    console.error('Follow-up create error:', error);
-    return NextResponse.json({ error: 'Failed to record follow-up' }, { status: 500 });
+    return NextResponse.json(sanitizeApiError(error, 'Failed to record follow-up'), { status: 500 });
   }
 }

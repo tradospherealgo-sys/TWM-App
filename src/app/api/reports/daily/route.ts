@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { logActivity } from '@/lib/audit';
+import { sanitizeApiError } from '@/lib/errors';
 
 const dailyReportSchema = z.object({
   callsCount: z.number().min(0).default(0),
@@ -19,39 +20,49 @@ const dailyReportSchema = z.object({
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
-  if (!user || (user.role !== 'EMPLOYEE' && user.role !== 'ADMIN')) {
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+  }
+  if (user.role !== 'EMPLOYEE' && user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden: Staff access required' }, { status: 403 });
   }
 
-  const { searchParams } = new URL(request.url);
-  const employeeId = searchParams.get('employeeId');
+  try {
+    const { searchParams } = new URL(request.url);
+    const employeeId = searchParams.get('employeeId');
 
-  const whereClause: Record<string, unknown> = {};
+    const whereClause: Record<string, unknown> = {};
 
-  if (user.role === 'EMPLOYEE' && user.employeeProfile) {
-    whereClause.employeeId = user.employeeProfile.id;
-  } else if (employeeId) {
-    whereClause.employeeId = employeeId;
-  }
+    if (user.role === 'EMPLOYEE' && user.employeeProfile) {
+      whereClause.employeeId = user.employeeProfile.id;
+    } else if (employeeId) {
+      whereClause.employeeId = employeeId;
+    }
 
-  const reports = await prisma.employeeDailyReport.findMany({
-    where: whereClause,
-    include: {
-      employee: {
-        include: { user: { select: { name: true, email: true } } },
+    const reports = await prisma.employeeDailyReport.findMany({
+      where: whereClause,
+      include: {
+        employee: {
+          include: { user: { select: { name: true, email: true } } },
+        },
       },
-    },
-    orderBy: { submittedAt: 'desc' },
-    take: 50,
-  });
+      orderBy: { submittedAt: 'desc' },
+      take: 50,
+    });
 
-  return NextResponse.json({ reports });
+    return NextResponse.json({ reports });
+  } catch (error) {
+    return NextResponse.json(sanitizeApiError(error, 'Failed to fetch daily reports'), { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
-  if (!user || user.role !== 'EMPLOYEE') {
-    return NextResponse.json({ error: 'Only active employees can submit daily reports' }, { status: 403 });
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+  }
+  if (user.role !== 'EMPLOYEE') {
+    return NextResponse.json({ error: 'Forbidden: Only active employees can submit daily reports' }, { status: 403 });
   }
 
   if (!user.employeeProfile) {
@@ -88,7 +99,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, report });
   } catch (error) {
-    console.error('Daily report submission error:', error);
-    return NextResponse.json({ error: 'Failed to submit report' }, { status: 500 });
+    return NextResponse.json(sanitizeApiError(error, 'Failed to submit report'), { status: 500 });
   }
 }

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { logActivity } from '@/lib/audit';
+import { sanitizeApiError } from '@/lib/errors';
 
 const updateUserSchema = z.object({
   userId: z.string(),
@@ -14,31 +15,41 @@ const updateUserSchema = z.object({
 
 export async function GET() {
   const user = await getCurrentUser();
-  if (!user || user.role !== 'ADMIN') {
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+  }
+  if (user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
   }
 
-  const users = await prisma.user.findMany({
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      phone: true,
-      role: true,
-      status: true,
-      createdAt: true,
-      customerProfile: { select: { id: true, customerCode: true, kycStatus: true } },
-      employeeProfile: { select: { id: true, employeeCode: true, department: true, designation: true } },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        customerProfile: { select: { id: true, customerCode: true, kycStatus: true, pan: true } },
+        employeeProfile: { select: { id: true, employeeCode: true, department: true, designation: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
-  return NextResponse.json({ users });
+    return NextResponse.json({ users });
+  } catch (error) {
+    return NextResponse.json(sanitizeApiError(error, 'Failed to retrieve users'), { status: 500 });
+  }
 }
 
 export async function PATCH(request: NextRequest) {
   const user = await getCurrentUser();
-  if (!user || user.role !== 'ADMIN') {
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+  }
+  if (user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
   }
 
@@ -51,9 +62,14 @@ export async function PATCH(request: NextRequest) {
 
     const { userId, role, status, department, designation } = parsed.data;
 
-    // Prevent changing own role to prevent accidental lockout
+    // Self-lockout protection: Prevent admin from revoking their own admin role
     if (userId === user.id && role && role !== 'ADMIN') {
       return NextResponse.json({ error: 'Cannot revoke your own administrator privileges' }, { status: 400 });
+    }
+
+    // Self-lockout protection: Prevent admin from deactivating or suspending their own account
+    if (userId === user.id && status && status !== 'ACTIVE') {
+      return NextResponse.json({ error: 'Cannot deactivate or suspend your own administrator account' }, { status: 400 });
     }
 
     const targetUser = await prisma.user.findUnique({
@@ -63,6 +79,24 @@ export async function PATCH(request: NextRequest) {
 
     if (!targetUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // System protection: Check if action would demote or deactivate the only remaining active admin
+    const isTargetActiveAdmin = targetUser.role === 'ADMIN' && targetUser.status === 'ACTIVE';
+    const wouldDemoteOrDeactivate =
+      isTargetActiveAdmin && ((role && role !== 'ADMIN') || (status && status !== 'ACTIVE'));
+
+    if (wouldDemoteOrDeactivate) {
+      const activeAdminCount = await prisma.user.count({
+        where: { role: 'ADMIN', status: 'ACTIVE' },
+      });
+
+      if (activeAdminCount <= 1) {
+        return NextResponse.json(
+          { error: 'Cannot modify the only active administrator account. The system requires at least one active administrator.' },
+          { status: 400 }
+        );
+      }
     }
 
     // Update user record
@@ -105,7 +139,6 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ success: true, user: updated });
   } catch (error) {
-    console.error('Update user error:', error);
-    return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
+    return NextResponse.json(sanitizeApiError(error, 'Failed to update user'), { status: 500 });
   }
 }

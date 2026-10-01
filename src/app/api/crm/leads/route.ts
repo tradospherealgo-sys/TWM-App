@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { logActivity } from '@/lib/audit';
+import { sanitizeApiError } from '@/lib/errors';
 
 const createLeadSchema = z.object({
   name: z.string().min(1, 'Lead name required'),
@@ -35,63 +36,73 @@ const updateLeadSchema = z.object({
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
-  if (!user || (user.role !== 'EMPLOYEE' && user.role !== 'ADMIN')) {
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+  }
+  if (user.role !== 'EMPLOYEE' && user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden: Staff access required' }, { status: 403 });
   }
 
-  const { searchParams } = new URL(request.url);
-  const status = searchParams.get('status');
-  const search = searchParams.get('search');
+  try {
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get('status');
+    const search = searchParams.get('search');
 
-  const whereClause: Record<string, unknown> = {};
+    const whereClause: Record<string, unknown> = {};
 
-  if (user.role === 'EMPLOYEE' && user.employeeProfile) {
-    // Optional filter: assigned to this employee or unassigned
-    const viewAll = searchParams.get('all') === 'true';
-    if (!viewAll) {
+    if (user.role === 'EMPLOYEE' && user.employeeProfile) {
+      // Optional filter: assigned to this employee or unassigned
+      const viewAll = searchParams.get('all') === 'true';
+      if (!viewAll) {
+        whereClause.OR = [
+          { assignedEmployeeId: user.employeeProfile.id },
+          { assignedEmployeeId: null },
+        ];
+      }
+    }
+
+    if (status) {
+      whereClause.status = status;
+    }
+
+    if (search) {
       whereClause.OR = [
-        { assignedEmployeeId: user.employeeProfile.id },
-        { assignedEmployeeId: null },
+        { name: { contains: search } },
+        { phone: { contains: search } },
+        { email: { contains: search } },
       ];
     }
-  }
 
-  if (status) {
-    whereClause.status = status;
-  }
-
-  if (search) {
-    whereClause.OR = [
-      { name: { contains: search } },
-      { phone: { contains: search } },
-      { email: { contains: search } },
-    ];
-  }
-
-  const leads = await prisma.lead.findMany({
-    where: whereClause,
-    include: {
-      assignedEmployee: {
-        include: { user: { select: { name: true, email: true } } },
+    const leads = await prisma.lead.findMany({
+      where: whereClause,
+      include: {
+        assignedEmployee: {
+          include: { user: { select: { name: true, email: true } } },
+        },
+        tasks: {
+          where: { status: { not: 'COMPLETED' } },
+          orderBy: { dueDate: 'asc' },
+        },
+        followUps: {
+          orderBy: { scheduledAt: 'desc' },
+          take: 3,
+        },
       },
-      tasks: {
-        where: { status: { not: 'COMPLETED' } },
-        orderBy: { dueDate: 'asc' },
-      },
-      followUps: {
-        orderBy: { scheduledAt: 'desc' },
-        take: 3,
-      },
-    },
-    orderBy: { updatedAt: 'desc' },
-  });
+      orderBy: { updatedAt: 'desc' },
+    });
 
-  return NextResponse.json({ leads });
+    return NextResponse.json({ leads });
+  } catch (error) {
+    return NextResponse.json(sanitizeApiError(error, 'Failed to fetch leads'), { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
-  if (!user || (user.role !== 'EMPLOYEE' && user.role !== 'ADMIN')) {
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+  }
+  if (user.role !== 'EMPLOYEE' && user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden: Staff access required' }, { status: 403 });
   }
 
@@ -128,14 +139,16 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, lead });
   } catch (error) {
-    console.error('Create lead error:', error);
-    return NextResponse.json({ error: 'Failed to create lead' }, { status: 500 });
+    return NextResponse.json(sanitizeApiError(error, 'Failed to create lead'), { status: 500 });
   }
 }
 
 export async function PATCH(request: NextRequest) {
   const user = await getCurrentUser();
-  if (!user || (user.role !== 'EMPLOYEE' && user.role !== 'ADMIN')) {
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+  }
+  if (user.role !== 'EMPLOYEE' && user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden: Staff access required' }, { status: 403 });
   }
 
@@ -173,7 +186,6 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ success: true, lead: updated });
   } catch (error) {
-    console.error('Update lead error:', error);
-    return NextResponse.json({ error: 'Failed to update lead' }, { status: 500 });
+    return NextResponse.json(sanitizeApiError(error, 'Failed to update lead'), { status: 500 });
   }
 }

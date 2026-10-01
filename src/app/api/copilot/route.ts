@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { getCurrentUser } from '@/lib/auth';
 import { askEmployeeCopilot } from '@/lib/adapters/ai-copilot';
 import { logActivity } from '@/lib/audit';
+import { sanitizeApiError } from '@/lib/errors';
 
 const copilotSchema = z.object({
   query: z.string().min(2, 'Query must be at least 2 characters'),
@@ -16,7 +17,10 @@ const copilotSchema = z.object({
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
-  if (!user || (user.role !== 'EMPLOYEE' && user.role !== 'ADMIN')) {
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+  }
+  if (user.role !== 'EMPLOYEE' && user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden: Staff access required' }, { status: 403 });
   }
 
@@ -44,7 +48,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ response });
   } catch (error) {
-    console.error('Copilot error:', error);
-    return NextResponse.json({ error: 'Failed to process AI copilot query' }, { status: 500 });
+    return NextResponse.json(sanitizeApiError(error, 'Failed to process AI copilot query'), { status: 500 });
   }
 }

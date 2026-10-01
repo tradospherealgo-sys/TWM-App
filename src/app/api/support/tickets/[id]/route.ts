@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { logActivity } from '@/lib/audit';
+import { sanitizeApiError } from '@/lib/errors';
 
 const updateTicketSchema = z.object({
   status: z.enum(['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']).optional(),
@@ -15,7 +16,10 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   const user = await getCurrentUser();
-  if (!user || (user.role !== 'EMPLOYEE' && user.role !== 'ADMIN')) {
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+  }
+  if (user.role !== 'EMPLOYEE' && user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden: Staff access required' }, { status: 403 });
   }
 
@@ -64,7 +68,6 @@ export async function PATCH(
 
     return NextResponse.json({ success: true, ticket: updated });
   } catch (error: any) {
-    console.error('Error updating support ticket:', error);
-    return NextResponse.json({ error: 'Failed to update ticket' }, { status: 500 });
+    return NextResponse.json(sanitizeApiError(error, 'Failed to update ticket'), { status: 500 });
   }
 }

@@ -18,7 +18,7 @@ export async function logActivity(params: LogActivityParams) {
   try {
     const cleanDetails = { ...params.details };
     // Redact any accidental sensitive fields
-    const sensitiveKeys = ['password', 'passwordHash', 'token', 'secret', 'jwt'];
+    const sensitiveKeys = ['password', 'passwordhash', 'token', 'secret', 'jwt', 'apikey', 'api_key', 'auth', 'cookie', 'bearer'];
     for (const key of Object.keys(cleanDetails)) {
       if (sensitiveKeys.some((s) => key.toLowerCase().includes(s))) {
         cleanDetails[key] = '[REDACTED]';

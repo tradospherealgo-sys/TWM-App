@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { logActivity } from '@/lib/audit';
+import { sanitizeApiError } from '@/lib/errors';
 
 const createTaskSchema = z.object({
   title: z.string().min(1, 'Title required'),
@@ -23,49 +24,59 @@ const updateTaskSchema = z.object({
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
-  if (!user || (user.role !== 'EMPLOYEE' && user.role !== 'ADMIN')) {
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+  }
+  if (user.role !== 'EMPLOYEE' && user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden: Staff access required' }, { status: 403 });
   }
 
-  const { searchParams } = new URL(request.url);
-  const status = searchParams.get('status');
-  const priority = searchParams.get('priority');
+  try {
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get('status');
+    const priority = searchParams.get('priority');
 
-  const whereClause: Record<string, unknown> = {};
+    const whereClause: Record<string, unknown> = {};
 
-  if (user.role === 'EMPLOYEE' && user.employeeProfile) {
-    whereClause.assignedEmployeeId = user.employeeProfile.id;
-  }
+    if (user.role === 'EMPLOYEE' && user.employeeProfile) {
+      whereClause.assignedEmployeeId = user.employeeProfile.id;
+    }
 
-  if (status) {
-    whereClause.status = status;
-  }
-  if (priority) {
-    whereClause.priority = priority;
-  }
+    if (status) {
+      whereClause.status = status;
+    }
+    if (priority) {
+      whereClause.priority = priority;
+    }
 
-  const tasks = await prisma.task.findMany({
-    where: whereClause,
-    include: {
-      customer: {
-        include: { user: { select: { name: true, phone: true } } },
+    const tasks = await prisma.task.findMany({
+      where: whereClause,
+      include: {
+        customer: {
+          include: { user: { select: { name: true, phone: true } } },
+        },
+        lead: {
+          select: { id: true, name: true, phone: true, productInterest: true },
+        },
+        assignedEmployee: {
+          include: { user: { select: { name: true } } },
+        },
       },
-      lead: {
-        select: { id: true, name: true, phone: true, productInterest: true },
-      },
-      assignedEmployee: {
-        include: { user: { select: { name: true } } },
-      },
-    },
-    orderBy: [{ status: 'asc' }, { dueDate: 'asc' }],
-  });
+      orderBy: [{ status: 'asc' }, { dueDate: 'asc' }],
+    });
 
-  return NextResponse.json({ tasks });
+    return NextResponse.json({ tasks });
+  } catch (error) {
+    return NextResponse.json(sanitizeApiError(error, 'Failed to fetch tasks'), { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
-  if (!user || (user.role !== 'EMPLOYEE' && user.role !== 'ADMIN')) {
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+  }
+  if (user.role !== 'EMPLOYEE' && user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden: Staff access required' }, { status: 403 });
   }
 
@@ -107,14 +118,16 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, task });
   } catch (error) {
-    console.error('Create task error:', error);
-    return NextResponse.json({ error: 'Failed to create task' }, { status: 500 });
+    return NextResponse.json(sanitizeApiError(error, 'Failed to create task'), { status: 500 });
   }
 }
 
 export async function PATCH(request: NextRequest) {
   const user = await getCurrentUser();
-  if (!user || (user.role !== 'EMPLOYEE' && user.role !== 'ADMIN')) {
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+  }
+  if (user.role !== 'EMPLOYEE' && user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden: Staff access required' }, { status: 403 });
   }
 
@@ -154,7 +167,6 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ success: true, task: updated });
   } catch (error) {
-    console.error('Update task error:', error);
-    return NextResponse.json({ error: 'Failed to update task' }, { status: 500 });
+    return NextResponse.json(sanitizeApiError(error, 'Failed to update task'), { status: 500 });
   }
 }

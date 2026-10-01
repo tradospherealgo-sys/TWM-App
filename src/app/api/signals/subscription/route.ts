@@ -3,11 +3,12 @@ import { getCurrentUser } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { getUserSubscriptionDetails } from '@/lib/signals/service';
 import { logActivity } from '@/lib/audit';
+import { sanitizeApiError } from '@/lib/errors';
 
 export async function GET(_request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
   }
 
   try {
@@ -33,15 +34,14 @@ export async function GET(_request: NextRequest) {
         : null,
     });
   } catch (error: any) {
-    console.error('Error fetching subscription details:', error);
-    return NextResponse.json({ error: error.message || 'Failed to fetch subscription' }, { status: 500 });
+    return NextResponse.json(sanitizeApiError(error, 'Failed to fetch subscription'), { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
   }
 
   try {
@@ -108,7 +108,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: 'Invalid subscription action requested' }, { status: 400 });
   } catch (error: any) {
-    console.error('Error handling subscription action:', error);
-    return NextResponse.json({ error: error.message || 'Subscription processing failed' }, { status: 500 });
+    return NextResponse.json(sanitizeApiError(error, 'Subscription processing failed'), { status: 500 });
   }
 }

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { getSignalsList, createSignal } from '@/lib/signals/service';
+import { sanitizeApiError } from '@/lib/errors';
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
   }
 
   try {
@@ -17,14 +18,16 @@ export async function GET(request: NextRequest) {
     const signals = await getSignalsList(user, { category, status, search });
     return NextResponse.json({ success: true, signals });
   } catch (error: any) {
-    console.error('Error fetching signals:', error);
-    return NextResponse.json({ error: error.message || 'Failed to fetch signals' }, { status: 500 });
+    return NextResponse.json(sanitizeApiError(error, 'Failed to fetch signals'), { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
-  if (!user || user.role !== 'ADMIN') {
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+  }
+  if (user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden: Admin access required to create signals' }, { status: 403 });
   }
 
@@ -78,7 +81,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, signal });
   } catch (error: any) {
-    console.error('Error creating signal:', error);
-    return NextResponse.json({ error: error.message || 'Failed to create signal' }, { status: 500 });
+    return NextResponse.json(sanitizeApiError(error, 'Failed to create signal'), { status: 500 });
   }
 }

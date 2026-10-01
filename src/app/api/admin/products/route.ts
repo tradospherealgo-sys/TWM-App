@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { logActivity } from '@/lib/audit';
+import { sanitizeApiError } from '@/lib/errors';
 
 const updateProductSchema = z.object({
   id: z.string(),
@@ -11,15 +12,22 @@ const updateProductSchema = z.object({
 });
 
 export async function GET() {
-  const products = await prisma.product.findMany({
-    orderBy: { category: 'asc' },
-  });
-  return NextResponse.json({ products });
+  try {
+    const products = await prisma.product.findMany({
+      orderBy: { category: 'asc' },
+    });
+    return NextResponse.json({ products });
+  } catch (error) {
+    return NextResponse.json(sanitizeApiError(error, 'Failed to fetch products'), { status: 500 });
+  }
 }
 
 export async function PATCH(request: NextRequest) {
   const user = await getCurrentUser();
-  if (!user || user.role !== 'ADMIN') {
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+  }
+  if (user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
   }
 
@@ -56,7 +64,6 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ success: true, product: updated });
   } catch (error) {
-    console.error('Update product error:', error);
-    return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });
+    return NextResponse.json(sanitizeApiError(error, 'Failed to update product'), { status: 500 });
   }
 }

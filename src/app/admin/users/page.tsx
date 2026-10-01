@@ -36,6 +36,7 @@ export default function AdminUsersPage() {
   const [newRole, setNewRole] = useState<'CLIENT' | 'EMPLOYEE' | 'ADMIN'>('CLIENT');
   const [newStatus, setNewStatus] = useState<'ACTIVE' | 'INACTIVE' | 'SUSPENDED'>('ACTIVE');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -57,6 +58,7 @@ export default function AdminUsersPage() {
   async function handleSaveUser() {
     if (!selectedUser) return;
     setIsUpdating(true);
+    setUpdateError(null);
     try {
       const res = await fetch('/api/admin/users', {
         method: 'PATCH',
@@ -77,10 +79,11 @@ export default function AdminUsersPage() {
         );
         setSelectedUser(null);
       } else {
-        alert(data.error || 'Failed to update user');
+        setUpdateError(data.error || 'Failed to update user');
       }
     } catch (e) {
       console.error(e);
+      setUpdateError('Network or server error while updating user access');
     } finally {
       setIsUpdating(false);
     }
@@ -164,6 +167,7 @@ export default function AdminUsersPage() {
                         setSelectedUser(u);
                         setNewRole(u.role);
                         setNewStatus(u.status);
+                        setUpdateError(null);
                       }}
                       className="text-xs"
                     >
@@ -187,12 +191,22 @@ export default function AdminUsersPage() {
                 <div className="text-xs text-slate-400">{selectedUser.name} ({selectedUser.email})</div>
               </div>
               <button
-                onClick={() => setSelectedUser(null)}
+                onClick={() => {
+                  setSelectedUser(null);
+                  setUpdateError(null);
+                }}
                 className="p-1 rounded-lg text-slate-400 hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {updateError && (
+              <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-800/80 text-rose-300 text-xs flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span>{updateError}</span>
+              </div>
+            )}
 
             <div className="space-y-3">
               <div>
@@ -242,7 +256,10 @@ export default function AdminUsersPage() {
                   variant="secondary"
                   size="md"
                   className="w-1/3 text-xs"
-                  onClick={() => setSelectedUser(null)}
+                  onClick={() => {
+                    setSelectedUser(null);
+                    setUpdateError(null);
+                  }}
                 >
                   Cancel
                 </Button>

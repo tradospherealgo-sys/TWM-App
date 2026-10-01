@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
+import { applySecurityHeaders } from '@/lib/security-headers';
 
 const SESSION_COOKIE_NAME = 'twm_session';
 const JWT_SECRET_STRING = process.env.JWT_SECRET || 'twm_development_session_secret_change_in_production_min_32_chars!';
@@ -15,16 +16,14 @@ interface JWTPayload {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Static assets, public api, favicon bypass
+  // Static assets, public login/register page bypass
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon.ico') ||
-    pathname.startsWith('/api/auth/login') ||
-    pathname.startsWith('/api/auth/logout') ||
     pathname === '/login' ||
     pathname === '/register'
   ) {
-    return NextResponse.next();
+    return applySecurityHeaders(NextResponse.next());
   }
 
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
@@ -39,9 +38,17 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Public API routes that do not require an active session
+  const isPublicApi =
+    pathname === '/api/auth/login' ||
+    pathname === '/api/auth/logout' ||
+    pathname.startsWith('/api/market') ||
+    pathname === '/api/integrations/status';
+
   // Protected route checking
   const isAdminRoute = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
   const isEmployeeRoute = pathname.startsWith('/employee') || pathname.startsWith('/api/employee');
+  const isProtectedApiRoute = pathname.startsWith('/api/') && !isPublicApi;
   const isClientRoute =
     pathname === '/' ||
     pathname.startsWith('/home') ||
@@ -55,13 +62,15 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/account');
 
   // If not logged in and accessing protected routes
-  if (!user && (isAdminRoute || isEmployeeRoute || isClientRoute)) {
+  if (!user && (isAdminRoute || isEmployeeRoute || isClientRoute || isProtectedApiRoute)) {
     if (pathname.startsWith('/api/')) {
-      return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
+      return applySecurityHeaders(
+        NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 })
+      );
     }
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
+    return applySecurityHeaders(NextResponse.redirect(loginUrl));
   }
 
   // Role authorization
@@ -69,21 +78,29 @@ export async function middleware(request: NextRequest) {
     // Admin only routes
     if (isAdminRoute && user.role !== 'ADMIN') {
       if (pathname.startsWith('/api/')) {
-        return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+        return applySecurityHeaders(
+          NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 })
+        );
       }
-      return NextResponse.redirect(new URL(user.role === 'EMPLOYEE' ? '/employee' : '/home', request.url));
+      return applySecurityHeaders(
+        NextResponse.redirect(new URL(user.role === 'EMPLOYEE' ? '/employee' : '/home', request.url))
+      );
     }
 
     // Employee routes (accessible to EMPLOYEE and ADMIN)
     if (isEmployeeRoute && user.role !== 'EMPLOYEE' && user.role !== 'ADMIN') {
       if (pathname.startsWith('/api/')) {
-        return NextResponse.json({ error: 'Forbidden: Staff access required' }, { status: 403 });
+        return applySecurityHeaders(
+          NextResponse.json({ error: 'Forbidden: Staff access required' }, { status: 403 })
+        );
       }
-      return NextResponse.redirect(new URL('/home', request.url));
+      return applySecurityHeaders(
+        NextResponse.redirect(new URL('/home', request.url))
+      );
     }
   }
 
-  return NextResponse.next();
+  return applySecurityHeaders(NextResponse.next());
 }
 
 export const config = {

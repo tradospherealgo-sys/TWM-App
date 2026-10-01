@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { verifyPassword, signSessionToken, SESSION_COOKIE_NAME, UserRole } from '@/lib/auth';
 import { logActivity } from '@/lib/audit';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { sanitizeApiError } from '@/lib/errors';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -15,9 +16,15 @@ export async function POST(request: NextRequest) {
     const ip = request.headers.get('x-forwarded-for') || 'local';
     const rateLimit = checkRateLimit(`login:${ip}`, 10, 60000);
     if (!rateLimit.allowed) {
+      const retryAfterSeconds = Math.ceil(rateLimit.retryAfterMs / 1000);
       return NextResponse.json(
         { error: 'Too many login attempts. Please wait a minute and try again.' },
-        { status: 429 }
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(retryAfterSeconds),
+          },
+        }
       );
     }
 
@@ -103,7 +110,6 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error('Login error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(sanitizeApiError(error, 'Internal server error'), { status: 500 });
   }
 }
