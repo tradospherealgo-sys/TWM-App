@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
+import { getClientOnboardingDetails } from '@/lib/onboarding';
 import { getSMCIntegrationStatus } from '@/lib/adapters/smc';
 import { getIndices } from '@/lib/adapters/market-data';
 import { Card } from '@/components/ui/Card';
@@ -28,6 +29,7 @@ export default async function ClientHomePage() {
 
   const smcStatus = getSMCIntegrationStatus();
   const indices = getIndices();
+  const onboardingDetails = user.role === 'CLIENT' ? await getClientOnboardingDetails(user.id) : null;
 
   // Fetch customer's real applications from database
   const customerProfile = user.customerProfile;
@@ -62,6 +64,27 @@ export default async function ClientHomePage() {
           <StatusBadge status={customerProfile?.kycStatus || 'PENDING'} />
         </div>
       </div>
+
+      {/* Onboarding Progress Card if not completed */}
+      {onboardingDetails && onboardingDetails.stage !== 'COMPLETED' && (
+        <Card className="bg-gradient-to-r from-blue-950/70 to-slate-900 border-blue-800/60 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+              <span className="text-xs font-semibold text-blue-200">KYC Onboarding Incomplete</span>
+            </div>
+            <span className="text-xs font-bold text-blue-400">{onboardingDetails.progressPercentage}%</span>
+          </div>
+          <p className="text-xs text-slate-300 mb-3">
+            {onboardingDetails.nextAction.title}: {onboardingDetails.nextAction.description}
+          </p>
+          <Link href="/onboarding">
+            <Button variant="primary" size="sm" className="w-full">
+              {onboardingDetails.nextAction.actionLabel} <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+            </Button>
+          </Link>
+        </Card>
+      )}
 
       {/* 2. SMC Global Trading Card (Crucial AP Boundary) */}
       <Card className="bg-gradient-to-br from-[#131C2E] to-[#18233C] border-amber-600/40 relative overflow-hidden">

@@ -16,12 +16,10 @@ interface JWTPayload {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Static assets, public login/register page bypass
+  // Static assets bypass
   if (
     pathname.startsWith('/_next') ||
-    pathname.startsWith('/favicon.ico') ||
-    pathname === '/login' ||
-    pathname === '/register'
+    pathname.startsWith('/favicon.ico')
   ) {
     return applySecurityHeaders(NextResponse.next());
   }
@@ -38,9 +36,26 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Authenticated users visiting /login or /register should be redirected to their respective dashboards
+  if (user && (pathname === '/login' || pathname === '/register')) {
+    if (user.role === 'ADMIN') {
+      return applySecurityHeaders(NextResponse.redirect(new URL('/admin', request.url)));
+    }
+    if (user.role === 'EMPLOYEE') {
+      return applySecurityHeaders(NextResponse.redirect(new URL('/employee', request.url)));
+    }
+    return applySecurityHeaders(NextResponse.redirect(new URL('/home', request.url)));
+  }
+
+  // Public pages bypass
+  if (pathname === '/login' || pathname === '/register') {
+    return applySecurityHeaders(NextResponse.next());
+  }
+
   // Public API routes that do not require an active session
   const isPublicApi =
     pathname === '/api/auth/login' ||
+    pathname === '/api/auth/register' ||
     pathname === '/api/auth/logout' ||
     pathname.startsWith('/api/market') ||
     pathname === '/api/integrations/status';
@@ -52,7 +67,9 @@ export async function middleware(request: NextRequest) {
   const isClientRoute =
     pathname === '/' ||
     pathname.startsWith('/home') ||
+    pathname.startsWith('/onboarding') ||
     pathname.startsWith('/markets') ||
+    pathname.startsWith('/signals') ||
     pathname.startsWith('/invest') ||
     pathname.startsWith('/protect') ||
     pathname.startsWith('/borrow') ||
@@ -96,6 +113,13 @@ export async function middleware(request: NextRequest) {
       }
       return applySecurityHeaders(
         NextResponse.redirect(new URL('/home', request.url))
+      );
+    }
+
+    // Client-only onboarding route (not accessible to staff or admin)
+    if (pathname.startsWith('/onboarding') && user.role !== 'CLIENT') {
+      return applySecurityHeaders(
+        NextResponse.redirect(new URL(user.role === 'ADMIN' ? '/admin' : '/employee', request.url))
       );
     }
   }

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, Suspense } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Shield, ArrowRight, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -117,7 +118,14 @@ function LoginForm() {
           </Button>
         </form>
 
-
+        <div className="mt-5 pt-4 border-t border-slate-800 text-center">
+          <p className="text-xs text-slate-400">
+            Don&apos;t have an account?{' '}
+            <Link href="/register" className="font-semibold text-blue-400 hover:text-blue-300 transition-colors">
+              Create an account
+            </Link>
+          </p>
+        </div>
       </div>
 
       {/* Regulatory disclaimer */}
