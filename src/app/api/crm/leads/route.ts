@@ -100,10 +100,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized: Authentication required' }, { status: 401 });
-  }
-  if (user.role !== 'EMPLOYEE' && user.role !== 'ADMIN') {
+  if (user && user.role !== 'EMPLOYEE' && user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden: Staff access required' }, { status: 403 });
   }
 
@@ -116,29 +113,34 @@ export async function POST(request: NextRequest) {
 
     const { name, phone, email, source, productInterest, notes, assignedEmployeeId } = parsed.data;
 
+    const effectiveSource = user ? (source || 'DIRECT') : 'WEBSITE';
+    const effectiveAssignedId = user
+      ? (assignedEmployeeId || (user.role === 'EMPLOYEE' ? user.employeeProfile?.id : null))
+      : null;
+
     const lead = await prisma.lead.create({
       data: {
         name,
         phone,
         email: email || null,
-        source,
-        productInterest,
-        notes,
-        assignedEmployeeId: assignedEmployeeId || (user.role === 'EMPLOYEE' ? user.employeeProfile?.id : null),
+        source: effectiveSource,
+        productInterest: productInterest || 'GENERAL',
+        notes: notes || null,
+        assignedEmployeeId: effectiveAssignedId,
         status: 'NEW_LEAD',
       },
     });
 
     await logActivity({
-      actorUserId: user.id,
-      actorRole: user.role,
+      actorUserId: user ? user.id : null,
+      actorRole: user ? user.role : 'ANONYMOUS',
       action: 'LEAD_CREATE',
       entityType: 'Lead',
       entityId: lead.id,
-      details: { name: lead.name, productInterest: lead.productInterest },
+      details: { name: lead.name, productInterest: lead.productInterest, source: effectiveSource },
     });
 
-    if (lead.assignedEmployeeId && lead.assignedEmployeeId !== user.employeeProfile?.id) {
+    if (lead.assignedEmployeeId && user?.employeeProfile?.id !== lead.assignedEmployeeId) {
       await notifyEmployee({
         employeeId: lead.assignedEmployeeId,
         title: 'New Lead Assigned',

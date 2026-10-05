@@ -63,7 +63,8 @@ export async function middleware(request: NextRequest) {
     pathname === '/api/auth/register' ||
     pathname === '/api/auth/logout' ||
     pathname.startsWith('/api/market') ||
-    pathname === '/api/integrations/status';
+    pathname === '/api/integrations/status' ||
+    (pathname === '/api/crm/leads' && request.method === 'POST');
 
   // Protected route checking
   const isAdminRoute = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
