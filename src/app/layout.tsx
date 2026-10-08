@@ -3,14 +3,14 @@ import './globals.css';
 import { PwaRegistrar } from '@/components/pwa/PwaRegistrar';
 
 export const metadata: Metadata = {
-  title: 'Tradosphere Wealth Management | TWM',
+  title: 'Tradosphere Wealth Management | AP • SMC Global',
   description: 'Unified Financial Services Platform - Authorised Person of SMC Global Securities Ltd.',
   manifest: '/manifest.json',
   applicationName: 'Tradosphere Wealth Management',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'TWM',
+    title: 'Tradosphere',
   },
   formatDetection: {
     telephone: false,

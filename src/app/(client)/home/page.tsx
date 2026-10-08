@@ -3,7 +3,7 @@ import Link from 'next/link';
 import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { getClientOnboardingDetails } from '@/lib/onboarding';
-import { getSMCIntegrationStatus } from '@/lib/adapters/smc';
+import { getSMCOnboardingDetailsAsync } from '@/lib/adapters/smc';
 import { getIndices } from '@/lib/adapters/market-data';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -27,7 +27,7 @@ export default async function ClientHomePage() {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const smcStatus = getSMCIntegrationStatus();
+  const smcDetails = await getSMCOnboardingDetailsAsync(user.phone || undefined, user.email || undefined);
   const indices = getIndices();
   const onboardingDetails = user.role === 'CLIENT' ? await getClientOnboardingDetails(user.id) : null;
 
@@ -112,27 +112,50 @@ export default async function ClientHomePage() {
           Direct equity, derivatives, and commodity trading powered by SMC Global Securities. Trade executions occur directly on SMC Ace.
         </p>
 
+        {!smcDetails.isAvailable && (
+          <div className="p-2.5 rounded-lg bg-amber-950/60 border border-amber-800/70 text-[11px] text-amber-200 mb-3">
+            {smcDetails.message}
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-2">
-          <a
-            href={smcStatus.onboardingUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full"
-          >
-            <Button variant="smc" size="sm" className="w-full text-xs">
-              Open Demat <ExternalLink className="w-3.5 h-3.5 ml-1" />
-            </Button>
-          </a>
-          <a
-            href={smcStatus.tradingPortalUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full"
-          >
-            <Button variant="outline" size="sm" className="w-full text-xs border-amber-500/40 text-amber-200 hover:bg-amber-950/40">
-              Access SMC Ace <ExternalLink className="w-3.5 h-3.5 ml-1" />
-            </Button>
-          </a>
+          {smcDetails.isAvailable ? (
+            <>
+              <a
+                href={smcDetails.destinationUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full"
+              >
+                <Button variant="smc" size="sm" className="w-full text-xs">
+                  Open Demat <ExternalLink className="w-3.5 h-3.5 ml-1" />
+                </Button>
+              </a>
+              <a
+                href={smcDetails.tradingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full"
+              >
+                <Button variant="outline" size="sm" className="w-full text-xs border-amber-500/40 text-amber-200 hover:bg-amber-950/40">
+                  Access SMC Ace <ExternalLink className="w-3.5 h-3.5 ml-1" />
+                </Button>
+              </a>
+            </>
+          ) : (
+            <>
+              <Link href="/support?topic=smc_demat" className="w-full">
+                <Button variant="smc" size="sm" className="w-full text-xs">
+                  Inquire Demat <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                </Button>
+              </Link>
+              <Link href="/support?topic=smc_ace" className="w-full">
+                <Button variant="outline" size="sm" className="w-full text-xs border-amber-500/40 text-amber-200 hover:bg-amber-950/40">
+                  Contact Desk <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
       </Card>
 

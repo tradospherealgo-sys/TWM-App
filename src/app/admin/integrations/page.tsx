@@ -229,6 +229,17 @@ export default function AdminIntegrationsPage() {
       case 'UPSTOX':
       case 'MARKET_DATA':
         return <Activity className="w-5 h-5 text-blue-400" />;
+      case 'OPTION_CHAIN':
+        return <Layers className="w-5 h-5 text-cyan-400" />;
+      case 'CHARTS':
+        return <Activity className="w-5 h-5 text-emerald-400" />;
+      case 'GOOGLE_AUTH':
+      case 'GOOGLE_SERVICES':
+        return <Lock className="w-5 h-5 text-red-400" />;
+      case 'PAYMENTS':
+        return <ShieldCheck className="w-5 h-5 text-green-400" />;
+      case 'FEATURE_FLAGS':
+        return <Settings2 className="w-5 h-5 text-pink-400" />;
       case 'SMC_GLOBAL':
         return <ShieldCheck className="w-5 h-5 text-amber-400" />;
       case 'AI_PROVIDER':
@@ -316,10 +327,10 @@ export default function AdminIntegrationsPage() {
           <div>
             <h2 className="text-sm font-bold text-white flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              TWM Integration Health Dashboard
+              Tradosphere Integration Health Dashboard
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              Live status across all 9 core subsystems. No source code or .env editing required.
+              Live status across all 15 platform subsystems. No source code or .env editing required.
             </p>
           </div>
 

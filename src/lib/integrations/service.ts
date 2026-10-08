@@ -20,6 +20,12 @@ import {
   testStorageConnection,
   testNotificationsConnection,
   testMarketDataProvider,
+  testOptionChainConnection,
+  testChartsConnection,
+  testGoogleAuthConnection,
+  testGoogleServicesConnection,
+  testPaymentsConnection,
+  testFeatureFlagsConnection,
 } from './testers';
 
 /**
@@ -56,6 +62,16 @@ export async function ensureIntegrationDefaults(): Promise<void> {
         initialStatus = 'CONFIGURED'; // Built-in SOP heuristic is active
       } else if (providerKey === 'MARKET_DATA') {
         initialStatus = 'CONFIGURED';
+      } else if (providerKey === 'OPTION_CHAIN') {
+        initialStatus = 'CONFIGURED';
+      } else if (providerKey === 'CHARTS') {
+        initialStatus = 'CONNECTED';
+      } else if (providerKey === 'GOOGLE_AUTH') {
+        initialStatus = 'NOT_CONFIGURED';
+      } else if (providerKey === 'PAYMENTS') {
+        initialStatus = 'CONFIGURED'; // Manual mode by default
+      } else if (providerKey === 'FEATURE_FLAGS') {
+        initialStatus = 'CONNECTED';
       }
 
       const { encryptedJson, maskedJson } = encryptSecretsMap(initialSecrets);
@@ -375,6 +391,24 @@ export async function runProviderTest(providerKey: string): Promise<TestResult> 
       break;
     case 'MARKET_DATA':
       testResult = await testMarketDataProvider(secrets, publicConfig);
+      break;
+    case 'OPTION_CHAIN':
+      testResult = await testOptionChainConnection(secrets, publicConfig);
+      break;
+    case 'CHARTS':
+      testResult = await testChartsConnection(secrets, publicConfig);
+      break;
+    case 'GOOGLE_AUTH':
+      testResult = await testGoogleAuthConnection(secrets, publicConfig);
+      break;
+    case 'GOOGLE_SERVICES':
+      testResult = await testGoogleServicesConnection(secrets, publicConfig);
+      break;
+    case 'PAYMENTS':
+      testResult = await testPaymentsConnection(secrets, publicConfig);
+      break;
+    case 'FEATURE_FLAGS':
+      testResult = await testFeatureFlagsConnection();
       break;
     default:
       testResult = {

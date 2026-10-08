@@ -129,7 +129,7 @@ export default function ClientSignalsPage() {
               <span className="p-1.5 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20">
                 <Radio className="w-4 h-4 animate-pulse" />
               </span>
-              <h1 className="text-xl font-bold tracking-tight text-white">TWM Signals</h1>
+              <h1 className="text-xl font-bold tracking-tight text-white">Tradosphere Signals</h1>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
               Approved market intelligence evaluated by 6-Agent AI review team

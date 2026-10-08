@@ -115,7 +115,7 @@ export default function ClientSupportPage() {
       <StatusBanner
         type="info"
         title="Authorised Person Relationship Support"
-        message="For order execution or margin matters on SMC Ace, you may also reach SMC Global directly via smctradeonline.com. TWM desk officers assist with documentation, KYC, and service facilitation."
+        message="For order execution or margin matters on SMC Ace, you may also reach SMC Global directly via smctradeonline.com. Tradosphere desk officers assist with documentation, KYC, and service facilitation."
       />
 
       {successNotice && (

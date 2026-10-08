@@ -336,90 +336,59 @@ function InvestContent() {
           <StatusBanner
             type="info"
             title="UPI ASBA Bidding"
-            message="IPOs are facilitated via direct UPI ASBA bidding through your bank and linked SMC Global Demat account. Allotment is strictly decided by the Registrar (RTA) as per SEBI allotment basis."
+            message="Initial Public Offerings (IPOs) are facilitated via direct UPI ASBA bidding through your bank and linked SMC Global Demat account. Allotment is decided strictly by the Registrar (RTA) as per SEBI allotment basis."
           />
 
-          <div className="space-y-3">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-              Active &amp; Upcoming IPOs
-            </h2>
-
-            <Card className="p-4 space-y-3">
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-sm text-white">Acme Solar Technologies Ltd</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">
-                      OPEN
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-0.5">Renewable Energy EPC</p>
-                </div>
+          <Card className="p-4 bg-[#131C2E] border-slate-800 space-y-3">
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-sm font-bold text-white">Upcoming &amp; Current IPO Desk</h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Pre-apply or submit an inquiry for Mainboard &amp; SME public issues.
+                </p>
               </div>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800 font-semibold">
+                ASBA Facilitation
+              </span>
+            </div>
 
-              <div className="grid grid-cols-2 gap-2 text-xs py-2 border-y border-slate-800">
-                <div>
-                  <span className="text-[10px] text-slate-500 uppercase block font-semibold">Price Band</span>
-                  <span className="text-slate-200 font-medium">₹275 - ₹289</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-500 uppercase block font-semibold">Lot Size</span>
-                  <span className="text-slate-200 font-medium">51 Shares (₹14,739)</span>
-                </div>
+            <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-300 space-y-2">
+              <p>
+                Our wealth operations team reviews current RHP prospectuses, valuation metrics, and anchor allocations to assist you with UPI mandate registration before bidding window closure.
+              </p>
+              <div className="flex items-center gap-2 pt-1 text-slate-400 text-[11px]">
+                <Info className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                <span>Zero brokerage on direct IPO ASBA applications.</span>
               </div>
+            </div>
 
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5" /> Closes in 2 days
-                </span>
-                <Button
-                  size="sm"
-                  variant="primary"
-                  onClick={() => setSubmittingProduct('IPO_ACME_SOLAR')}
-                >
-                  Apply via ASBA
+            <div className="pt-2 flex flex-col sm:flex-row gap-2">
+              <Button
+                size="md"
+                variant="primary"
+                className="w-full text-xs"
+                onClick={() => setSubmittingProduct('IPO_GENERAL_INQUIRY')}
+              >
+                Apply / Inquire for Upcoming IPO <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+              </Button>
+              <a
+                href="https://www.smcindiaonline.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto"
+              >
+                <Button size="md" variant="outline" className="w-full text-xs">
+                  SMC IPO Portal
                 </Button>
-              </div>
-            </Card>
+              </a>
+            </div>
+          </Card>
 
-            <Card className="p-4 space-y-3">
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-sm text-white">Swiggy Limited</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-950 text-blue-400 border border-blue-800">
-                      UPCOMING
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-400 mt-0.5">Food Delivery &amp; Quick Commerce</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 text-xs py-2 border-y border-slate-800">
-                <div>
-                  <span className="text-[10px] text-slate-500 uppercase block font-semibold">Price Band</span>
-                  <span className="text-slate-200 font-medium">₹371 - ₹390</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-slate-500 uppercase block font-semibold">Lot Size</span>
-                  <span className="text-slate-200 font-medium">38 Shares (₹14,820)</span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5" /> Opens Nov 06
-                </span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setSubmittingProduct('IPO_SWIGGY_PRE')}
-                >
-                  Pre-Apply
-                </Button>
-              </div>
-            </Card>
-          </div>
+          <StatusBanner
+            type="regulatory"
+            title="SEBI Disclaimer"
+            message="Investments in securities market are subject to market risks. Read the Red Herring Prospectus (RHP) carefully before investing."
+          />
         </div>
       )}
 

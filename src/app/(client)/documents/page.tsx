@@ -184,8 +184,7 @@ export default function ClientDocumentsPage() {
                 </span>
 
                 <a
-                  href={doc.fileUrl}
-                  download
+                  href={`/api/documents/download?id=${doc.id}`}
                   className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 font-medium"
                 >
                   <Download className="w-3.5 h-3.5" /> Download

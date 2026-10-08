@@ -129,11 +129,11 @@ export function PwaRegistrar() {
           className="fixed bottom-20 left-4 right-4 max-w-sm mx-auto z-50 bg-[#131C2E] border border-blue-600/50 p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 text-xs"
         >
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 text-white font-bold flex items-center justify-center text-xs shrink-0">
-              TWM
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-sm">
+              TS
             </div>
             <div>
-              <div className="font-bold text-white">Install TWM App</div>
+              <div className="font-bold text-white">Install Tradosphere</div>
               <div className="text-[11px] text-slate-400">Add to your home screen</div>
             </div>
           </div>

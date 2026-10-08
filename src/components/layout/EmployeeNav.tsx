@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
+import { TradosphereLogo } from '@/components/ui/TradosphereLogo';
 
 export function EmployeeNav({ employeeName = 'Employee' }: { employeeName?: string }) {
   const pathname = usePathname();
@@ -46,13 +47,8 @@ export function EmployeeNav({ employeeName = 'Employee' }: { employeeName?: stri
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
         {/* Brand & Badge */}
         <div className="flex items-center gap-3">
-          <Link href="/employee" className="flex items-center gap-2">
-            <span className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center font-bold text-white text-xs">
-              TWM
-            </span>
-            <div className="font-bold text-slate-100 text-sm hidden sm:block">
-              Tradosphere Employee OS
-            </div>
+          <Link href="/employee" className="hover:opacity-95 transition-opacity">
+            <TradosphereLogo size="sm" showSubtitle={false} />
           </Link>
           <span className="px-2 py-0.5 text-[10px] font-semibold bg-emerald-950 text-emerald-300 border border-emerald-800/80 rounded-full">
             Staff Desk

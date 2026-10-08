@@ -370,7 +370,7 @@ export default function AccountPage() {
       <StatusBanner
         type="regulatory"
         title="Account Privacy Notice"
-        message="Your KYC records are protected under Indian DPDP and SEBI data guidelines. TWM does not sell client financial data."
+        message="Your KYC records are protected under Indian DPDP and SEBI data guidelines. Tradosphere does not sell client financial data."
       />
     </div>
   );

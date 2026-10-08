@@ -89,23 +89,52 @@ export async function getSMCIntegrationStatusAsync(): Promise<SMCIntegrationStat
  */
 export function getSMCOnboardingUrl(clientPhone?: string, clientEmail?: string): string {
   const { onboardingUrl, apCode } = getSMCIntegrationStatus();
-  const url = new URL(onboardingUrl);
-  if (apCode) {
-    url.searchParams.set('ap_code', apCode);
+  if (!apCode) {
+    return '/support?topic=smc_demat';
   }
-  if (clientPhone) {
-    url.searchParams.set('mobile', clientPhone);
+  try {
+    const url = new URL(onboardingUrl);
+    if (apCode) {
+      url.searchParams.set('ap_code', apCode);
+    }
+    if (clientPhone) {
+      url.searchParams.set('mobile', clientPhone);
+    }
+    if (clientEmail) {
+      url.searchParams.set('email', clientEmail);
+    }
+    return url.toString();
+  } catch {
+    return onboardingUrl;
   }
-  if (clientEmail) {
-    url.searchParams.set('email', clientEmail);
-  }
-  return url.toString();
 }
 
 /**
  * Get direct URL to SMC Ace trading terminal
  */
 export function getSMCTradingPortalUrl(): string {
-  const { tradingPortalUrl } = getSMCIntegrationStatus();
+  const { tradingPortalUrl, apCode } = getSMCIntegrationStatus();
+  if (!apCode) {
+    return '/support?topic=smc_demat';
+  }
   return tradingPortalUrl;
 }
+
+/**
+ * Async safe status check with fallback warning message
+ */
+export async function getSMCOnboardingDetailsAsync(clientPhone?: string, clientEmail?: string) {
+  const status = await getSMCIntegrationStatusAsync();
+  const isAvailable = Boolean(status.isConfigured && status.apCode);
+  
+  return {
+    isAvailable,
+    apCode: status.apCode,
+    destinationUrl: isAvailable ? getSMCOnboardingUrl(clientPhone, clientEmail) : '/support?topic=smc_demat',
+    tradingUrl: isAvailable ? status.tradingPortalUrl : '/support?topic=smc_demat',
+    message: isAvailable
+      ? 'Official SMC Global Authorised Person onboarding active.'
+      : 'SMC Demat onboarding is currently undergoing scheduled maintenance. Please contact Tradosphere Wealth Management support desk.',
+  };
+}
+

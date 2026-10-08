@@ -306,18 +306,73 @@ export async function runSystemHealthCheck(): Promise<SystemHealthReport> {
     isBlocker: false,
   });
 
-  // 13. Documents Security
+  // 13. Option Chain Matrix
+  const optConfig = await getDecryptedIntegration('OPTION_CHAIN');
   subsystems.push({
-    id: 'DOCUMENTS',
-    name: 'Document Access & Privacy Policy',
-    category: 'SECURITY',
-    status: 'READY',
-    statusLabel: 'READY',
-    message: 'Direct public file access disabled. Client documents only viewable via authenticated server-side role check.',
+    id: 'OPTION_CHAIN',
+    name: 'Option Chain & Derivatives Matrix',
+    category: 'INTEGRATION',
+    status: optConfig.status === 'CONNECTED' ? 'READY' : 'CONFIGURATION_REQUIRED',
+    statusLabel: optConfig.status === 'CONNECTED' ? 'READY' : 'WAITING FOR FEED',
+    message: optConfig.status === 'CONNECTED'
+      ? 'Option chain live calculations active.'
+      : 'Option chain configured. Requires Upstox live feed connection in Admin Settings.',
     isBlocker: false,
   });
 
-  // 14. Background Jobs & Audit Logs
+  // 14. Financial Charts
+  const chartConfig = await getDecryptedIntegration('CHARTS');
+  subsystems.push({
+    id: 'CHARTS',
+    name: 'Financial Visualization & Chart Engine',
+    category: 'INTEGRATION',
+    status: 'READY',
+    statusLabel: 'READY',
+    message: `Interactive chart engine active (${chartConfig.publicConfig.chartType || 'CANDLESTICK'} mode).`,
+    isBlocker: false,
+  });
+
+  // 15. Google Authentication
+  const gAuthConfig = await getDecryptedIntegration('GOOGLE_AUTH');
+  const isGAuthEnabled = gAuthConfig.publicConfig.enabled === 'true';
+  subsystems.push({
+    id: 'GOOGLE_AUTH',
+    name: 'Google OAuth Single Sign-On',
+    category: 'SECURITY',
+    status: isGAuthEnabled && gAuthConfig.status === 'CONNECTED' ? 'READY' : 'CONFIGURATION_REQUIRED',
+    statusLabel: isGAuthEnabled && gAuthConfig.status === 'CONNECTED' ? 'READY' : 'OPTIONAL SETUP',
+    message: isGAuthEnabled
+      ? 'Google Sign-In enabled.'
+      : 'Google Sign-In is optional/disabled. Direct email/password authentication is active.',
+    isBlocker: false,
+  });
+
+  // 16. Payment Gateway
+  const payConfig = await getDecryptedIntegration('PAYMENTS');
+  subsystems.push({
+    id: 'PAYMENTS',
+    name: 'Payment Gateway Subsystem',
+    category: 'INTEGRATION',
+    status: 'READY',
+    statusLabel: 'READY',
+    message: payConfig.publicConfig.provider === 'manual'
+      ? 'Operating in Compliant Manual Admin Entitlement mode for subscriptions.'
+      : `Online payment gateway (${payConfig.publicConfig.provider}) active.`,
+    isBlocker: false,
+  });
+
+  // 17. Feature Flags Engine
+  subsystems.push({
+    id: 'FEATURE_FLAGS',
+    name: 'Platform Feature Flags Engine',
+    category: 'INFRASTRUCTURE',
+    status: 'READY',
+    statusLabel: 'READY',
+    message: 'Dynamic feature flags enabled. Admin toggles instantly control module visibility.',
+    isBlocker: false,
+  });
+
+  // 18. Audit Logs & Activity Trail
   const auditCount = await prisma.activityLog.count();
   subsystems.push({
     id: 'BACKGROUND_JOBS',
@@ -326,17 +381,6 @@ export async function runSystemHealthCheck(): Promise<SystemHealthReport> {
     status: 'READY',
     statusLabel: 'READY',
     message: `Immutable audit logger recording all logins, role changes, and integration updates (${auditCount} events recorded).`,
-    isBlocker: false,
-  });
-
-  // 15. Environment & Secrets
-  subsystems.push({
-    id: 'ENVIRONMENT',
-    name: 'Bootstrap Environment Configuration',
-    category: 'SECURITY',
-    status: 'READY',
-    statusLabel: 'READY',
-    message: 'Bootstrap variables configured. No plaintext secrets stored in repository.',
     isBlocker: false,
   });
 
