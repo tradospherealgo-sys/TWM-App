@@ -5,7 +5,13 @@ declare global {
   var prisma: PrismaClient | undefined;
 }
 
-let rawUrl = (process.env.DATABASE_URL || '').trim();
+let rawUrl = (
+  process.env.DATABASE_URL ||
+  process.env.POSTGRES_PRISMA_URL ||
+  process.env.POSTGRES_URL ||
+  process.env.SUPABASE_DATABASE_URL ||
+  ''
+).trim();
 if (rawUrl.startsWith('DATABASE_URL=')) {
   rawUrl = rawUrl.substring('DATABASE_URL='.length).trim();
 } else if (rawUrl.startsWith('DATABASE_URL =')) {
