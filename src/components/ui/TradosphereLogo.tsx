@@ -37,16 +37,12 @@ export function TradosphereLogo({
 
   return (
     <div className={`flex items-center gap-2.5 ${className}`}>
-      {/* Official Geometric Monogram Icon */}
-      <div
-        className={`${iconDimensions} rounded-xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 border border-blue-400/30 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-950/40 shrink-0 relative overflow-hidden`}
-      >
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
-        <span className="tracking-tight font-black font-sans drop-shadow-sm select-none">
-          T
-        </span>
-        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 absolute bottom-1.5 right-1.5 shadow-sm" />
-      </div>
+      {/* Official Tradosphere Logo Icon */}
+      <img
+        src="/logo.svg"
+        alt="Tradosphere"
+        className={`${iconDimensions} object-contain shrink-0`}
+      />
 
       {/* Typography & Regulatory Partnership Attribution */}
       <div className="flex flex-col justify-center">

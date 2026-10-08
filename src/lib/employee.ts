@@ -8,11 +8,15 @@ export async function generateUniqueEmployeeCode(prismaClient: any = prisma): Pr
   for (let attempt = 0; attempt < 5; attempt++) {
     const randomSuffix = Math.floor(100000 + Math.random() * 900000);
     const candidate = `TWM-EMP-${randomSuffix}`;
-    const existing = await prismaClient.employee.findUnique({
-      where: { employeeCode: candidate },
-      select: { id: true },
-    });
-    if (!existing) {
+    try {
+      const existing = await prismaClient.employee.findUnique({
+        where: { employeeCode: candidate },
+        select: { id: true },
+      });
+      if (!existing) {
+        return candidate;
+      }
+    } catch {
       return candidate;
     }
   }

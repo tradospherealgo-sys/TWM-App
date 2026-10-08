@@ -27,6 +27,8 @@ rawUrl = rawUrl.replace(/^\\"/, '').replace(/\\"$/, '').trim();
 
 if (rawUrl) {
   process.env.DATABASE_URL = rawUrl;
+} else {
+  process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/twm_db';
 }
 
 if (process.env.NODE_ENV === 'production') {

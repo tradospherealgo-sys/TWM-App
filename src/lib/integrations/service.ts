@@ -32,67 +32,87 @@ import {
  * TWM Integration Management Service
  */
 
+let isDbOnline: boolean | null = null;
+const inMemoryStore = new Map<string, any>();
+
 /**
  * Initialize default configuration rows in DB if they do not exist
  */
 export async function ensureIntegrationDefaults(): Promise<void> {
-  for (const [providerKey, meta] of Object.entries(INTEGRATION_REGISTRY)) {
-    const existing = await prisma.integrationConfig.findUnique({
-      where: { providerKey },
-    });
-
-    if (!existing) {
-      // Check if bootstrap / env has initial values
-      let initialStatus: IntegrationStatus = 'NOT_CONFIGURED';
-      const initialPublic = meta.defaultPublicConfig || {};
-      const initialSecrets: Record<string, string> = {};
-
-      if (providerKey === 'DATABASE') {
-        initialStatus = 'REQUIRES_BOOTSTRAP';
-      } else if (providerKey === 'STORAGE') {
-        initialStatus = 'CONNECTED';
-      } else if (providerKey === 'NOTIFICATIONS') {
-        initialStatus = 'CONNECTED';
-      } else if (providerKey === 'SMC_GLOBAL') {
-        if (process.env.SMC_GLOBAL_AP_CODE) {
-          initialPublic.apCode = process.env.SMC_GLOBAL_AP_CODE;
-          initialStatus = 'CONFIGURED';
-        }
-      } else if (providerKey === 'AI_PROVIDER') {
-        initialStatus = 'CONFIGURED'; // Built-in SOP heuristic is active
-      } else if (providerKey === 'MARKET_DATA') {
-        initialStatus = 'CONFIGURED';
-      } else if (providerKey === 'OPTION_CHAIN') {
-        initialStatus = 'CONFIGURED';
-      } else if (providerKey === 'CHARTS') {
-        initialStatus = 'CONNECTED';
-      } else if (providerKey === 'GOOGLE_AUTH') {
-        initialStatus = 'NOT_CONFIGURED';
-      } else if (providerKey === 'PAYMENTS') {
-        initialStatus = 'CONFIGURED'; // Manual mode by default
-      } else if (providerKey === 'FEATURE_FLAGS') {
-        initialStatus = 'CONNECTED';
+  if (isDbOnline === false) return;
+  try {
+    for (const [providerKey, meta] of Object.entries(INTEGRATION_REGISTRY)) {
+      let existing: any = null;
+      try {
+        existing = await prisma.integrationConfig.findUnique({
+          where: { providerKey },
+        });
+        isDbOnline = true;
+      } catch (err: any) {
+        // Database is unreachable, mark offline and stop querying
+        isDbOnline = false;
+        break;
       }
 
-      const { encryptedJson, maskedJson } = encryptSecretsMap(initialSecrets);
+      if (!existing) {
+        // Check if bootstrap / env has initial values
+        let initialStatus: IntegrationStatus = 'NOT_CONFIGURED';
+        const initialPublic = meta.defaultPublicConfig || {};
+        const initialSecrets: Record<string, string> = {};
 
-      await prisma.integrationConfig.upsert({
-        where: { providerKey },
-        update: {},
-        create: {
-          providerKey,
-          name: meta.name,
-          category: meta.category,
-          environment: meta.environment,
-          encryptedSecrets: encryptedJson,
-          publicConfigJson: JSON.stringify(initialPublic),
-          maskedSecretsJson: maskedJson,
-          status: initialStatus,
-          isRequired: meta.isRequired,
-          isBootstrapOnly: meta.isBootstrapOnly,
-        },
-      });
+        if (providerKey === 'DATABASE') {
+          initialStatus = 'REQUIRES_BOOTSTRAP';
+        } else if (providerKey === 'STORAGE') {
+          initialStatus = 'CONNECTED';
+        } else if (providerKey === 'NOTIFICATIONS') {
+          initialStatus = 'CONNECTED';
+        } else if (providerKey === 'SMC_GLOBAL') {
+          if (process.env.SMC_GLOBAL_AP_CODE) {
+            initialPublic.apCode = process.env.SMC_GLOBAL_AP_CODE;
+            initialStatus = 'CONFIGURED';
+          }
+        } else if (providerKey === 'AI_PROVIDER') {
+          initialStatus = 'CONFIGURED'; // Built-in SOP heuristic is active
+        } else if (providerKey === 'MARKET_DATA') {
+          initialStatus = 'CONFIGURED';
+        } else if (providerKey === 'OPTION_CHAIN') {
+          initialStatus = 'CONFIGURED';
+        } else if (providerKey === 'CHARTS') {
+          initialStatus = 'CONNECTED';
+        } else if (providerKey === 'GOOGLE_AUTH') {
+          initialStatus = 'NOT_CONFIGURED';
+        } else if (providerKey === 'PAYMENTS') {
+          initialStatus = 'CONFIGURED'; // Manual mode by default
+        } else if (providerKey === 'FEATURE_FLAGS') {
+          initialStatus = 'CONNECTED';
+        }
+
+        const { encryptedJson, maskedJson } = encryptSecretsMap(initialSecrets);
+
+        try {
+          await prisma.integrationConfig.upsert({
+            where: { providerKey },
+            update: {},
+            create: {
+              providerKey,
+              name: meta.name,
+              category: meta.category,
+              environment: meta.environment,
+              encryptedSecrets: encryptedJson,
+              publicConfigJson: JSON.stringify(initialPublic),
+              maskedSecretsJson: maskedJson,
+              status: initialStatus,
+              isRequired: meta.isRequired,
+              isBootstrapOnly: meta.isBootstrapOnly,
+            },
+          });
+        } catch {
+          break;
+        }
+      }
     }
+  } catch (err: any) {
+    console.warn('[INTEGRATIONS] Could not ensure integration defaults in database:', err?.message || err);
   }
 }
 
@@ -103,9 +123,45 @@ export async function ensureIntegrationDefaults(): Promise<void> {
 export async function getAllIntegrationCards(): Promise<IntegrationCardView[]> {
   await ensureIntegrationDefaults();
 
-  const configs = await prisma.integrationConfig.findMany({
-    orderBy: { createdAt: 'asc' },
-  });
+  let configs: any[] = [];
+  if (isDbOnline !== false) {
+    try {
+      configs = await prisma.integrationConfig.findMany({
+        orderBy: { createdAt: 'asc' },
+      });
+      isDbOnline = true;
+    } catch (err: any) {
+      isDbOnline = false;
+      console.warn('[INTEGRATIONS] Could not load configs from DB, using registry defaults:', err?.message || err);
+    }
+  }
+
+  if (configs.length === 0) {
+    // Build cards from registry directly
+    configs = Object.entries(INTEGRATION_REGISTRY).map(([providerKey, meta]) => ({
+      providerKey,
+      name: meta.name,
+      environment: meta.environment,
+      status: providerKey === 'DATABASE' ? 'REQUIRES_BOOTSTRAP' : 'NOT_CONFIGURED',
+      isRequired: meta.isRequired,
+      isBootstrapOnly: meta.isBootstrapOnly,
+      publicConfigJson: JSON.stringify(meta.defaultPublicConfig || {}),
+      maskedSecretsJson: '{}',
+      lastTestResult: null,
+      lastTestedAt: null,
+      lastError: null,
+    }));
+  }
+
+  // Overlay any inMemoryStore configs
+  for (const [providerKey, mem] of inMemoryStore.entries()) {
+    const idx = configs.findIndex((c) => c.providerKey === providerKey);
+    if (idx >= 0) {
+      configs[idx] = { ...configs[idx], ...mem };
+    } else {
+      configs.push(mem);
+    }
+  }
 
   const cards: IntegrationCardView[] = [];
 
@@ -169,7 +225,7 @@ export async function getAllIntegrationCards(): Promise<IntegrationCardView[]> {
       isRequired: config.isRequired,
       isBootstrapOnly: config.isBootstrapOnly,
       completeness,
-      lastTestedAt: config.lastTestedAt ? config.lastTestedAt.toISOString() : null,
+      lastTestedAt: config.lastTestedAt ? (typeof config.lastTestedAt === 'string' ? config.lastTestedAt : config.lastTestedAt.toISOString()) : null,
       lastTestResult,
       lastError: config.lastError,
       publicConfig,
@@ -191,12 +247,27 @@ export async function getDecryptedIntegration(providerKey: string): Promise<{
   publicConfig: Record<string, any>;
   status: string;
 }> {
-  const config = await prisma.integrationConfig.findUnique({
-    where: { providerKey },
-  });
+  let config: any = inMemoryStore.get(providerKey) || null;
+
+  if (!config && isDbOnline !== false) {
+    try {
+      config = await prisma.integrationConfig.findUnique({
+        where: { providerKey },
+      });
+      isDbOnline = true;
+    } catch (err: any) {
+      isDbOnline = false;
+      config = null;
+    }
+  }
 
   if (!config) {
-    return { secrets: {}, publicConfig: {}, status: 'NOT_CONFIGURED' };
+    const meta = INTEGRATION_REGISTRY[providerKey];
+    return {
+      secrets: {},
+      publicConfig: meta?.defaultPublicConfig || {},
+      status: 'NOT_CONFIGURED',
+    };
   }
 
   const secrets = decryptSecretsMap(config.encryptedSecrets);
@@ -249,52 +320,75 @@ export async function saveIntegration(
 
   const { encryptedJson, maskedJson } = encryptSecretsMap(mergedSecrets);
 
-  // Update DB record
-  await prisma.integrationConfig.upsert({
-    where: { providerKey },
-    update: {
-      encryptedSecrets: encryptedJson,
-      maskedSecretsJson: maskedJson,
-      publicConfigJson: JSON.stringify(mergedPublic),
-      status: 'CONFIGURED',
-      updatedByUserId: adminUserId,
-    },
-    create: {
-      providerKey,
-      name: meta.name,
-      category: meta.category,
-      environment: meta.environment,
-      encryptedSecrets: encryptedJson,
-      maskedSecretsJson: maskedJson,
-      publicConfigJson: JSON.stringify(mergedPublic),
-      status: 'CONFIGURED',
-      isRequired: meta.isRequired,
-      isBootstrapOnly: meta.isBootstrapOnly,
-      updatedByUserId: adminUserId,
-    },
+  // Update in-memory store immediately
+  inMemoryStore.set(providerKey, {
+    providerKey,
+    name: meta.name,
+    category: meta.category,
+    environment: meta.environment,
+    encryptedSecrets: encryptedJson,
+    maskedSecretsJson: maskedJson,
+    publicConfigJson: JSON.stringify(mergedPublic),
+    status: 'CONFIGURED',
+    isRequired: meta.isRequired,
+    isBootstrapOnly: meta.isBootstrapOnly,
+    updatedByUserId: adminUserId,
   });
 
-  // Resolve valid actor user ID for FK constraint
-  let validActorId: string | null = null;
-  if (adminUserId) {
-    const user = await prisma.user.findUnique({ where: { id: adminUserId }, select: { id: true } });
-    if (user) validActorId = user.id;
+  // Update DB record if reachable
+  if (isDbOnline !== false) {
+    try {
+      await prisma.integrationConfig.upsert({
+        where: { providerKey },
+        update: {
+          encryptedSecrets: encryptedJson,
+          maskedSecretsJson: maskedJson,
+          publicConfigJson: JSON.stringify(mergedPublic),
+          status: 'CONFIGURED',
+          updatedByUserId: adminUserId,
+        },
+        create: {
+          providerKey,
+          name: meta.name,
+          category: meta.category,
+          environment: meta.environment,
+          encryptedSecrets: encryptedJson,
+          maskedSecretsJson: maskedJson,
+          publicConfigJson: JSON.stringify(mergedPublic),
+          status: 'CONFIGURED',
+          isRequired: meta.isRequired,
+          isBootstrapOnly: meta.isBootstrapOnly,
+          updatedByUserId: adminUserId,
+        },
+      });
+
+      // Resolve valid actor user ID for FK constraint
+      let validActorId: string | null = null;
+      if (adminUserId) {
+        const user = await prisma.user.findUnique({ where: { id: adminUserId }, select: { id: true } });
+        if (user) validActorId = user.id;
+      }
+
+      // Audit log entry (NEVER log the secret itself)
+      await prisma.activityLog.create({
+        data: {
+          actorUserId: validActorId,
+          actorRole: 'ADMIN',
+          action: 'INTEGRATION_UPDATE',
+          entityType: 'IntegrationConfig',
+          entityId: providerKey,
+          detailsJson: JSON.stringify({
+            providerKey,
+            updatedFields: Object.keys(updatedSecrets).concat(Object.keys(updatedPublicConfig)),
+          }),
+        },
+      });
+      isDbOnline = true;
+    } catch (err: any) {
+      isDbOnline = false;
+      console.warn(`[INTEGRATIONS] DB write skipped for ${providerKey}:`, err?.message || err);
+    }
   }
-
-  // Audit log entry (NEVER log the secret itself)
-  await prisma.activityLog.create({
-    data: {
-      actorUserId: validActorId,
-      actorRole: 'ADMIN',
-      action: 'INTEGRATION_UPDATE',
-      entityType: 'IntegrationConfig',
-      entityId: providerKey,
-      detailsJson: JSON.stringify({
-        providerKey,
-        updatedFields: Object.keys(updatedSecrets).concat(Object.keys(updatedPublicConfig)),
-      }),
-    },
-  });
 
   // Run automatic connection test
   const testResult = await runProviderTest(providerKey);
@@ -322,36 +416,55 @@ export async function rotateIntegrationSecret(
 
   const { encryptedJson, maskedJson } = encryptSecretsMap(secrets);
 
-  await prisma.integrationConfig.update({
-    where: { providerKey },
-    data: {
+  // Update in-memory store
+  if (inMemoryStore.has(providerKey)) {
+    const mem = inMemoryStore.get(providerKey);
+    inMemoryStore.set(providerKey, {
+      ...mem,
       encryptedSecrets: encryptedJson,
       maskedSecretsJson: maskedJson,
       updatedByUserId: adminUserId,
-    },
-  });
-
-  // Resolve valid actor user ID for FK constraint
-  let validActorId: string | null = null;
-  if (adminUserId) {
-    const user = await prisma.user.findUnique({ where: { id: adminUserId }, select: { id: true } });
-    if (user) validActorId = user.id;
+    });
   }
 
-  await prisma.activityLog.create({
-    data: {
-      actorUserId: validActorId,
-      actorRole: 'ADMIN',
-      action: 'INTEGRATION_CREDENTIAL_ROTATED',
-      entityType: 'IntegrationConfig',
-      entityId: providerKey,
-      detailsJson: JSON.stringify({
-        providerKey,
-        rotatedField: secretKey,
-        action: newSecretValue ? 'ROTATED' : 'CLEARED',
-      }),
-    },
-  });
+  if (isDbOnline !== false) {
+    try {
+      await prisma.integrationConfig.update({
+        where: { providerKey },
+        data: {
+          encryptedSecrets: encryptedJson,
+          maskedSecretsJson: maskedJson,
+          updatedByUserId: adminUserId,
+        },
+      });
+
+      // Resolve valid actor user ID for FK constraint
+      let validActorId: string | null = null;
+      if (adminUserId) {
+        const user = await prisma.user.findUnique({ where: { id: adminUserId }, select: { id: true } });
+        if (user) validActorId = user.id;
+      }
+
+      await prisma.activityLog.create({
+        data: {
+          actorUserId: validActorId,
+          actorRole: 'ADMIN',
+          action: 'INTEGRATION_CREDENTIAL_ROTATED',
+          entityType: 'IntegrationConfig',
+          entityId: providerKey,
+          detailsJson: JSON.stringify({
+            providerKey,
+            rotatedField: secretKey,
+            action: newSecretValue ? 'ROTATED' : 'CLEARED',
+          }),
+        },
+      });
+      isDbOnline = true;
+    } catch (err: any) {
+      isDbOnline = false;
+      console.warn(`[INTEGRATIONS] DB rotation write skipped for ${providerKey}:`, err?.message || err);
+    }
+  }
 }
 
 /**
@@ -419,12 +532,13 @@ export async function runProviderTest(providerKey: string): Promise<TestResult> 
       };
   }
 
-  // Update DB with test results
-  await prisma.integrationConfig.update({
-    where: { providerKey },
-    data: {
+  // Update in-memory store
+  if (inMemoryStore.has(providerKey)) {
+    const mem = inMemoryStore.get(providerKey);
+    inMemoryStore.set(providerKey, {
+      ...mem,
       status: testResult.status,
-      lastTestedAt: new Date(),
+      lastTestedAt: new Date().toISOString(),
       lastTestResult: JSON.stringify({
         success: testResult.success,
         message: testResult.message,
@@ -432,8 +546,32 @@ export async function runProviderTest(providerKey: string): Promise<TestResult> 
         details: testResult.details || null,
       }),
       lastError: testResult.error || null,
-    },
-  });
+    });
+  }
+
+  // Update DB with test results if reachable
+  if (isDbOnline !== false) {
+    try {
+      await prisma.integrationConfig.update({
+        where: { providerKey },
+        data: {
+          status: testResult.status,
+          lastTestedAt: new Date(),
+          lastTestResult: JSON.stringify({
+            success: testResult.success,
+            message: testResult.message,
+            latencyMs: testResult.latencyMs,
+            details: testResult.details || null,
+          }),
+          lastError: testResult.error || null,
+        },
+      });
+      isDbOnline = true;
+    } catch (err: any) {
+      isDbOnline = false;
+      console.warn(`[INTEGRATIONS] DB test result update skipped for ${providerKey}:`, err?.message || err);
+    }
+  }
 
   return testResult;
 }

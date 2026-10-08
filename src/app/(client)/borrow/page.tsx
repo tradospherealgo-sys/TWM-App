@@ -64,7 +64,7 @@ export default function BorrowPage() {
       <StatusBanner
         type="regulatory"
         title="Lender Credit Policy"
-        message="Tradosphere Wealth Management acts as a loan facilitator and corporate business correspondent for scheduled banks and RBI-registered NBFCs. Credit sanction is subject to the sole underwriting discretion of the respective lender. Tradosphere does not independently guarantee loan approval."
+        message="Tradosphere Wealth Management acts as a loan facilitator and corporate business correspondent for scheduled banks and RBI-registered NBFCs. Credit sanction is subject to the sole underwriting discretion of the respective lender. TWM does not independently guarantee loan approval."
       />
 
       {successAppNum && (
