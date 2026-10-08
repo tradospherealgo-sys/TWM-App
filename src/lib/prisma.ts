@@ -23,6 +23,15 @@ if (rawUrl) {
   process.env.DATABASE_URL = rawUrl;
 }
 
+if (process.env.NODE_ENV === 'production') {
+  if (!rawUrl || rawUrl.startsWith('file:')) {
+    console.error(
+      '[PRISMA_CONFIG] FATAL: Production requires a valid PostgreSQL connection string in DATABASE_URL. Received:',
+      rawUrl ? 'sqlite/file scheme' : 'undefined/empty'
+    );
+  }
+}
+
 export const prisma =
   global.prisma ||
   new PrismaClient({

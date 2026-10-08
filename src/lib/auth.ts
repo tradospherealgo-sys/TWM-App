@@ -4,8 +4,23 @@ import { cookies } from 'next/headers';
 import prisma from './prisma';
 
 export const SESSION_COOKIE_NAME = 'twm_session';
-const JWT_SECRET_STRING = process.env.JWT_SECRET || 'twm_development_session_secret_change_in_production_min_32_chars!';
-const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_STRING);
+const DEFAULT_DEV_JWT_SECRET = 'twm_development_session_secret_change_in_production_min_32_chars!';
+
+export function getJwtSecret(): Uint8Array {
+  const secret = (process.env.JWT_SECRET || '').trim();
+  if (!secret || secret === DEFAULT_DEV_JWT_SECRET) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        'FATAL: Production requires a secure, high-entropy JWT_SECRET (min 32 chars). Development fallback secret is strictly prohibited in production.'
+      );
+    }
+    return new TextEncoder().encode(DEFAULT_DEV_JWT_SECRET);
+  }
+  if (secret.length < 32 && process.env.NODE_ENV === 'production') {
+    throw new Error('FATAL: JWT_SECRET must be at least 32 characters in production.');
+  }
+  return new TextEncoder().encode(secret);
+}
 
 export type UserRole = 'CLIENT' | 'EMPLOYEE' | 'ADMIN';
 
@@ -23,11 +38,12 @@ export interface SessionPayload {
  * Sign a secure JWT session token (valid for 7 days)
  */
 export async function signSessionToken(payload: Omit<SessionPayload, 'exp'>): Promise<string> {
+  const key = getJwtSecret();
   return await new SignJWT({ ...payload })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
-    .sign(JWT_SECRET);
+    .sign(key);
 }
 
 /**
@@ -35,7 +51,8 @@ export async function signSessionToken(payload: Omit<SessionPayload, 'exp'>): Pr
  */
 export async function verifySessionToken(token: string): Promise<SessionPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET, {
+    const key = getJwtSecret();
+    const { payload } = await jwtVerify(token, key, {
       algorithms: ['HS256'],
     });
     return payload as unknown as SessionPayload;
