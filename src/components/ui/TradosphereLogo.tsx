@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { Shield } from 'lucide-react';
 
 interface LogoProps {
@@ -21,6 +22,13 @@ export function TradosphereLogo({
     xl: 'w-14 h-14 text-xl',
   }[size];
 
+  const pixelDimensions = {
+    sm: 28,
+    md: 36,
+    lg: 44,
+    xl: 56,
+  }[size];
+
   const titleSizes = {
     sm: 'text-xs',
     md: 'text-sm',
@@ -38,9 +46,13 @@ export function TradosphereLogo({
   return (
     <div className={`flex items-center gap-2.5 ${className}`}>
       {/* Official Tradosphere Logo Icon */}
-      <img
+      <Image
         src="/logo.svg"
         alt="Tradosphere"
+        width={pixelDimensions}
+        height={pixelDimensions}
+        unoptimized
+        priority
         className={`${iconDimensions} object-contain shrink-0`}
       />
 

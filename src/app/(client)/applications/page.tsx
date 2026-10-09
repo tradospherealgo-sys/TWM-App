@@ -15,6 +15,7 @@ import {
   AlertCircle,
   HelpCircle,
   ArrowRight,
+  Plus,
 } from 'lucide-react';
 
 export default async function ApplicationsPage() {
@@ -105,6 +106,13 @@ export default async function ApplicationsPage() {
               )}
             </Card>
           ))}
+          <div className="pt-2">
+            <Link href="/home" className="block w-full">
+              <Button variant="primary" size="lg" className="w-full">
+                <Plus className="w-4 h-4 mr-1.5" /> Apply for New Service
+              </Button>
+            </Link>
+          </div>
         </div>
       ) : (
         <EmptyState
