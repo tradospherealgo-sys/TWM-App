@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { WifiOff, Wifi, Download } from 'lucide-react';
+import { WifiOff, Wifi, Download, ShieldAlert, RotateCcw } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -12,6 +12,7 @@ export function PwaRegistrar() {
   const [isOnline, setIsOnline] = useState<boolean>(true);
   const [showStatusBanner, setShowStatusBanner] = useState<boolean>(false);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [reloadLoopDetected, setReloadLoopDetected] = useState<boolean>(false);
 
   useEffect(() => {
     // 1. Initial online status
@@ -19,13 +20,51 @@ export function PwaRegistrar() {
       setIsOnline(navigator.onLine);
     }
 
-    // 2. Service Worker Registration
+    // 2. Mobile PWA reload-loop protection & automatic safety recovery
+    if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
+      const RELOAD_TRACKER_KEY = 'twm_pwa_reload_ts';
+      const WINDOW_MS = 8000; // 8 seconds burst window
+      const MAX_BURST = 4;
+
+      try {
+        const now = Date.now();
+        const raw = sessionStorage.getItem(RELOAD_TRACKER_KEY);
+        const timestamps: number[] = raw ? JSON.parse(raw) : [];
+        const recent = timestamps.filter((t) => now - t < WINDOW_MS);
+        recent.push(now);
+
+        if (recent.length >= MAX_BURST) {
+          // Loop detected: Stop reloads, clear caches and signal recovery
+          console.warn('[TWM PWA] Repeated reload loop detected. Activating recovery mode.');
+          setReloadLoopDetected(true);
+          sessionStorage.removeItem(RELOAD_TRACKER_KEY);
+
+          if ('caches' in window) {
+            caches.keys().then((names) => {
+              names.forEach((name) => caches.delete(name));
+            });
+          }
+          fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+        } else {
+          sessionStorage.setItem(RELOAD_TRACKER_KEY, JSON.stringify(recent));
+          // If the app remains stable for 6 seconds, reset tracker
+          const stableTimer = setTimeout(() => {
+            sessionStorage.removeItem(RELOAD_TRACKER_KEY);
+          }, 6000);
+          return () => clearTimeout(stableTimer);
+        }
+      } catch {
+        // Storage access restricted
+      }
+    }
+
+    // 3. Service Worker Registration (supporting document.readyState complete)
     if (
       typeof window !== 'undefined' &&
       'serviceWorker' in navigator &&
       process.env.NODE_ENV !== 'test'
     ) {
-      window.addEventListener('load', () => {
+      const registerSW = () => {
         navigator.serviceWorker
           .register('/sw.js', { scope: '/' })
           .then((registration) => {
@@ -38,7 +77,6 @@ export function PwaRegistrar() {
                     installingWorker.state === 'installed' &&
                     navigator.serviceWorker.controller
                   ) {
-                    // New content is available
                     console.log('[TWM PWA] New update available.');
                   }
                 };
@@ -48,7 +86,13 @@ export function PwaRegistrar() {
           .catch((err) => {
             console.warn('[TWM PWA] Service worker registration failed:', err);
           });
-      });
+      };
+
+      if (document.readyState === 'complete') {
+        registerSW();
+      } else {
+        window.addEventListener('load', registerSW);
+      }
     }
 
     // 3. Network listeners
@@ -153,6 +197,51 @@ export function PwaRegistrar() {
             </button>
           </div>
         </aside>
+      )}
+
+      {/* Recoverable reload loop & session error modal */}
+      {reloadLoopDetected && (
+        <div
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="recovery-title"
+          className="fixed inset-0 z-50 bg-[#0B111E]/95 backdrop-blur-md flex items-center justify-center p-4 text-slate-100"
+        >
+          <div className="bg-[#131C2E] border border-blue-500/40 rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
+              <RotateCcw className="w-6 h-6 animate-spin" />
+            </div>
+            <div className="space-y-1">
+              <h3 id="recovery-title" className="text-base font-bold text-white">
+                Session Reset & Recovery
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Repeated reloads were detected on this device. Stale caches and session tokens have been safely cleared to restore system stability.
+              </p>
+            </div>
+            <div className="pt-2 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  window.location.href = '/login?clear=1';
+                }}
+                className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-md transition-colors"
+              >
+                Sign In to Tradosphere
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setReloadLoopDetected(false);
+                  window.location.reload();
+                }}
+                className="w-full py-2 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

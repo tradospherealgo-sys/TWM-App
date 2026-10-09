@@ -1,6 +1,18 @@
-import React from 'react';
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 export default function RootLoading() {
+  const [showStuckHint, setShowStuckHint] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowStuckHint(true);
+    }, 7000);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div
       role="status"
@@ -19,6 +31,26 @@ export default function RootLoading() {
         </p>
         <p className="text-[11px] text-slate-500">Securing environment...</p>
       </div>
+      {showStuckHint && (
+        <div className="pt-4 text-center space-y-2">
+          <p className="text-xs text-slate-400">Taking longer than usual?</p>
+          <div className="flex gap-3 justify-center text-xs">
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium"
+            >
+              Refresh
+            </button>
+            <Link
+              href="/login?clear=1"
+              className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium"
+            >
+              Go to Login
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

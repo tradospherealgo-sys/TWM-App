@@ -50,8 +50,16 @@ function LoginForm() {
         throw new Error(data.error || 'Failed to login');
       }
 
-      // Route based on role or explicit redirect
-      if (redirectUrl && !redirectUrl.startsWith('/api')) {
+      // Route based on role or explicit sanitized redirect
+      const isValidRedirect =
+        redirectUrl &&
+        !redirectUrl.startsWith('/api') &&
+        !redirectUrl.startsWith('/login') &&
+        !redirectUrl.startsWith('/register') &&
+        redirectUrl !== '/' &&
+        redirectUrl.trim() !== '';
+
+      if (isValidRedirect) {
         router.push(redirectUrl);
       } else {
         if (data.user.role === 'ADMIN') {
@@ -165,6 +173,13 @@ function LoginForm() {
                 Access Client Panel, Employee OS, or Admin Control Center
               </p>
             </div>
+
+            {searchParams.get('reason') === 'session_expired' && !error && (
+              <div className="mb-5 p-3 rounded-xl bg-amber-950/40 border border-amber-800/60 text-xs text-amber-300 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <span>Your session has expired. Please sign in again to continue.</span>
+              </div>
+            )}
 
             {error && (
               <div className="mb-5 p-3 rounded-xl bg-red-950/50 border border-red-800/80 text-xs text-red-300 flex items-start gap-2">
