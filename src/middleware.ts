@@ -57,20 +57,57 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Authenticated users visiting /login or /register should be redirected to their respective dashboards
-  if (user && (pathname === '/login' || pathname === '/register')) {
-    if (user.role === 'ADMIN') {
-      return applySecurityHeaders(NextResponse.redirect(new URL('/admin', request.url)));
-    }
-    if (user.role === 'EMPLOYEE') {
-      return applySecurityHeaders(NextResponse.redirect(new URL('/employee', request.url)));
-    }
-    return applySecurityHeaders(NextResponse.redirect(new URL('/home', request.url)));
-  }
-
-  // Public pages bypass
+  // Authenticated and public handling for /login or /register
   if (pathname === '/login' || pathname === '/register') {
-    return applySecurityHeaders(NextResponse.next());
+    const hasRedirectQuery = request.nextUrl.searchParams.has('redirect');
+    const hasReasonQuery = request.nextUrl.searchParams.has('reason');
+    const hasErrorQuery = request.nextUrl.searchParams.has('error') || request.nextUrl.searchParams.has('auth_error');
+    const hasLogoutQuery = request.nextUrl.searchParams.has('logout') || request.nextUrl.searchParams.has('clear');
+
+    // If visiting /login or /register with redirect, reason, error, or logout parameters,
+    // downstream server layouts or the user actively routed here to challenge or re-authenticate.
+    // NEVER bounce them back to protected dashboards: doing so causes an infinite 307 redirect loop.
+    // Instead, delete any stale/invalid session cookie and render the page.
+    if (hasRedirectQuery || hasReasonQuery || hasErrorQuery || hasLogoutQuery) {
+      const response = applySecurityHeaders(NextResponse.next());
+      if (token) {
+        response.cookies.delete(SESSION_COOKIE_NAME);
+      }
+      if (request.cookies.has('twm_nav_bounce')) {
+        response.cookies.delete('twm_nav_bounce');
+      }
+      return response;
+    }
+
+    // Authenticated users visiting clean /login or /register without params
+    if (user) {
+      // Loop protection: check redirect bounce counter
+      const bounceCount = parseInt(request.cookies.get('twm_nav_bounce')?.value || '0', 10);
+      if (bounceCount >= 2) {
+        // Break infinite loop: clear session cookie and render login page cleanly
+        const response = applySecurityHeaders(NextResponse.next());
+        response.cookies.delete(SESSION_COOKIE_NAME);
+        response.cookies.delete('twm_nav_bounce');
+        return response;
+      }
+
+      const destination =
+        user.role === 'ADMIN' ? '/admin' : user.role === 'EMPLOYEE' ? '/employee' : '/home';
+      const redirectRes = applySecurityHeaders(NextResponse.redirect(new URL(destination, request.url)));
+      redirectRes.cookies.set('twm_nav_bounce', String(bounceCount + 1), {
+        path: '/',
+        maxAge: 10,
+        sameSite: 'lax',
+        httpOnly: true,
+      });
+      return redirectRes;
+    }
+
+    const response = applySecurityHeaders(NextResponse.next());
+    if (request.cookies.has('twm_nav_bounce')) {
+      response.cookies.delete('twm_nav_bounce');
+    }
+    return response;
   }
 
   // Public API routes that do not require an active session
@@ -111,7 +148,9 @@ export async function middleware(request: NextRequest) {
       );
     }
     const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('redirect', pathname);
+    if (pathname !== '/' && pathname !== '/login') {
+      loginUrl.searchParams.set('redirect', pathname);
+    }
     return applySecurityHeaders(NextResponse.redirect(loginUrl));
   }
 
@@ -149,7 +188,11 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return applySecurityHeaders(NextResponse.next());
+  const response = applySecurityHeaders(NextResponse.next());
+  if (request.cookies.has('twm_nav_bounce')) {
+    response.cookies.delete('twm_nav_bounce');
+  }
+  return response;
 }
 
 export const config = {

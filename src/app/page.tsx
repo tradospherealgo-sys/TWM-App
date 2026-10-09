@@ -5,7 +5,7 @@ export default async function IndexPage() {
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect('/login');
+    redirect('/login?reason=session_expired');
   }
 
   const destination = getRoleDashboardPath(user.role);

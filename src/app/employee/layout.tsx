@@ -13,7 +13,7 @@ export default async function EmployeeLayout({
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect('/login');
+    redirect('/login?reason=session_expired');
   }
 
   // RBAC check: Only EMPLOYEE or ADMIN can access employee panel

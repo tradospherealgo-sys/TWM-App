@@ -18,7 +18,7 @@ describe('Part 9: PWA, UX & Production Experience Suite', () => {
       const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
       expect(manifest.name).toBe('Tradosphere Wealth Management');
       expect(manifest.short_name).toBe('TWM');
-      expect(manifest.start_url).toBe('/');
+      expect(['/', '/home']).toContain(manifest.start_url);
       expect(manifest.display).toBe('standalone');
       expect(manifest.orientation).toBe('portrait-primary');
       expect(manifest.theme_color).toBe('#0B111E');

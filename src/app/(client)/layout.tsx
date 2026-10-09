@@ -15,7 +15,7 @@ export default async function ClientLayout({
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect('/login');
+    redirect('/login?reason=session_expired');
   }
 
   // Count unread notifications safely

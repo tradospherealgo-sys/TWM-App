@@ -13,7 +13,7 @@ export default async function AdminLayout({
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect('/login');
+    redirect('/login?reason=session_expired');
   }
 
   // Strict RBAC: Only ADMIN role is allowed here
