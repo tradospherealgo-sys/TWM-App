@@ -87,7 +87,7 @@ export async function middleware(request: NextRequest) {
   const isEmployeeRoute =
     pathname.startsWith('/employee') ||
     pathname.startsWith('/api/employee') ||
-    pathname.startsWith('/api/crm');
+    (pathname.startsWith('/api/crm') && !isPublicApi);
   const isProtectedApiRoute = pathname.startsWith('/api/') && !isPublicApi;
   const isClientRoute =
     pathname === '/' ||
