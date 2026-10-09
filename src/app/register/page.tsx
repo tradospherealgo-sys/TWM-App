@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Shield, ArrowRight, AlertCircle, CheckCircle2, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { TradosphereLogo } from '@/components/ui/TradosphereLogo';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -89,15 +90,10 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-[#0B111E] flex flex-col justify-center px-4 py-10 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         {/* Brand Header */}
-        <div className="text-center">
-          <div className="inline-flex w-14 h-14 rounded-2xl bg-blue-600 items-center justify-center font-bold text-white shadow-lg text-xl mb-3">
-            TWM
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
-            Tradosphere Wealth Management
-          </h1>
-          <p className="mt-1 text-xs text-amber-400 font-medium flex items-center justify-center gap-1">
-            <Shield className="w-3.5 h-3.5 inline" /> Authorised Person • SMC Global Securities
+        <div className="flex flex-col items-center text-center">
+          <TradosphereLogo size="xl" showSubtitle={true} className="mb-2" />
+          <p className="text-xs text-slate-400 mt-1 max-w-xs">
+            Client Portal, Wealth Management &amp; Institutional Gateway
           </p>
         </div>
 

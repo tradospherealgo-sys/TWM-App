@@ -434,4 +434,302 @@ export const INTEGRATION_REGISTRY: Record<string, IntegrationMetadata> = {
       primaryProvider: 'UPSTOX',
     },
   },
+
+  OPTION_CHAIN: {
+    providerKey: 'OPTION_CHAIN',
+    name: 'Derivatives & Option Chain Feed',
+    category: 'MARKET_DATA',
+    purpose: 'Real-time NSE F&O Option Chain matrix (NIFTY, BANKNIFTY) with strike filtering, PCR, and Open Interest.',
+    environment: 'PRODUCTION',
+    isRequired: false,
+    isBootstrapOnly: false,
+    docsHelp:
+      'Option Chain data streams via Upstox Market Data Feed v2 or dedicated broker websocket. When live F&O provider credentials are unconfigured, displays honest "OPTION CHAIN PROVIDER NOT CONFIGURED" state.',
+    fields: [
+      {
+        key: 'enabled',
+        label: 'Enable Option Chain Module',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Enabled (When Market Provider Connected)', value: 'true' },
+          { label: 'Disabled', value: 'false' },
+        ],
+      },
+      {
+        key: 'defaultUnderlying',
+        label: 'Default Underlying Index',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'NIFTY 50', value: 'NIFTY' },
+          { label: 'BANK NIFTY', value: 'BANKNIFTY' },
+        ],
+      },
+      {
+        key: 'refreshIntervalSec',
+        label: 'Auto-Refresh Interval (Seconds)',
+        type: 'number',
+        required: false,
+        placeholder: '30',
+      },
+    ],
+    defaultPublicConfig: {
+      enabled: 'true',
+      defaultUnderlying: 'NIFTY',
+      refreshIntervalSec: 30,
+    },
+  },
+
+  CHARTS: {
+    providerKey: 'CHARTS',
+    name: 'Financial Visualization & Chart Engine',
+    category: 'MARKET_DATA',
+    purpose: 'Interactive financial charting solution backed by real market-data API responses.',
+    environment: 'PRODUCTION',
+    isRequired: false,
+    isBootstrapOnly: false,
+    docsHelp:
+      'Controls interactive market charting display. Charts require verified OHLC data points from the connected market data feed. Never displays synthetic or simulated price movements.',
+    fields: [
+      {
+        key: 'enabled',
+        label: 'Enable Financial Charts',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Enabled', value: 'true' },
+          { label: 'Disabled', value: 'false' },
+        ],
+      },
+      {
+        key: 'chartType',
+        label: 'Default Chart Rendering',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Interactive Candlestick / Area Chart', value: 'CANDLESTICK' },
+          { label: 'Simplified Line Trend', value: 'LINE' },
+        ],
+      },
+      {
+        key: 'defaultTimeframe',
+        label: 'Default Timeframe',
+        type: 'select',
+        required: true,
+        options: [
+          { label: '1 Day (Intraday)', value: '1D' },
+          { label: '1 Week', value: '1W' },
+          { label: '1 Month', value: '1M' },
+          { label: '1 Year', value: '1Y' },
+        ],
+      },
+    ],
+    defaultPublicConfig: {
+      enabled: 'true',
+      chartType: 'CANDLESTICK',
+      defaultTimeframe: '1D',
+    },
+  },
+
+  GOOGLE_AUTH: {
+    providerKey: 'GOOGLE_AUTH',
+    name: 'Google OAuth 2.0 Single Sign-On',
+    category: 'AUTH',
+    purpose: 'One-click authenticated Google sign-in for clients and verified users.',
+    environment: 'PRODUCTION',
+    isRequired: false,
+    isBootstrapOnly: false,
+    docsHelp:
+      'Setup in Google Cloud Console (https://console.cloud.google.com):\n1. Create a project and configure the OAuth consent screen.\n2. Create OAuth Client ID (Web Application).\n3. Add Authorized Redirect URI: https://your-domain.com/api/auth/google/callback.\n4. Enter Client ID and Client Secret below.',
+    fields: [
+      {
+        key: 'enabled',
+        label: 'Enable Google Sign-In Button',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Enabled', value: 'true' },
+          { label: 'Disabled', value: 'false' },
+        ],
+      },
+      {
+        key: 'clientId',
+        label: 'Google OAuth Client ID',
+        type: 'text',
+        required: false,
+        placeholder: 'xxxxxxxxx-xxxxxxxx.apps.googleusercontent.com',
+      },
+      {
+        key: 'clientSecret',
+        label: 'Google OAuth Client Secret',
+        type: 'password',
+        isSecret: true,
+        required: false,
+        placeholder: '••••••••••••',
+      },
+      {
+        key: 'redirectUri',
+        label: 'Authorized Redirect URI',
+        type: 'url',
+        required: false,
+        placeholder: 'https://twm-app-kappa.vercel.app/api/auth/google/callback',
+      },
+    ],
+    defaultPublicConfig: {
+      enabled: 'false',
+    },
+  },
+
+  GOOGLE_SERVICES: {
+    providerKey: 'GOOGLE_SERVICES',
+    name: 'Google Workspace & Cloud Services',
+    category: 'COMMUNICATION',
+    purpose: 'Google Drive KYC document archiving, Gmail SMTP routing, and Google Analytics.',
+    environment: 'PRODUCTION',
+    isRequired: false,
+    isBootstrapOnly: false,
+    docsHelp:
+      'Configures auxiliary Google Cloud APIs for automated enterprise backup and reporting. Optional module.',
+    fields: [
+      {
+        key: 'serviceAccountEmail',
+        label: 'Service Account Email',
+        type: 'text',
+        required: false,
+        placeholder: 'tradosphere-service@project.iam.gserviceaccount.com',
+      },
+      {
+        key: 'privateKey',
+        label: 'Private Key (PEM)',
+        type: 'password',
+        isSecret: true,
+        required: false,
+        placeholder: '-----BEGIN PRIVATE KEY-----\n...',
+      },
+    ],
+    defaultPublicConfig: {},
+  },
+
+  PAYMENTS: {
+    providerKey: 'PAYMENTS',
+    name: 'Payment Gateway (Razorpay / Cashfree)',
+    category: 'FINANCIAL_SERVICE',
+    purpose: 'Processes client subscription purchases for Signals & Market Intelligence.',
+    environment: 'PRODUCTION',
+    isRequired: false,
+    isBootstrapOnly: false,
+    docsHelp:
+      'Configure Razorpay or Cashfree API keys to accept online UPI/Card payments for premium research subscriptions. When unconfigured, subscriptions operate in complimentary approval mode.',
+    fields: [
+      {
+        key: 'provider',
+        label: 'Payment Gateway Provider',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Razorpay (India)', value: 'razorpay' },
+          { label: 'Cashfree Payments', value: 'cashfree' },
+          { label: 'Manual Admin Entitlement Mode', value: 'manual' },
+        ],
+      },
+      {
+        key: 'keyId',
+        label: 'Key ID / App ID',
+        type: 'text',
+        required: false,
+        placeholder: 'rzp_live_xxxxxxxxxxxx',
+      },
+      {
+        key: 'keySecret',
+        label: 'Key Secret',
+        type: 'password',
+        isSecret: true,
+        required: false,
+        placeholder: '••••••••••••',
+      },
+      {
+        key: 'webhookSecret',
+        label: 'Webhook Secret',
+        type: 'password',
+        isSecret: true,
+        required: false,
+        placeholder: '••••••••••••',
+      },
+    ],
+    defaultPublicConfig: {
+      provider: 'manual',
+    },
+  },
+
+  FEATURE_FLAGS: {
+    providerKey: 'FEATURE_FLAGS',
+    name: 'Platform Feature Flags & Module Toggles',
+    category: 'SETTINGS',
+    purpose: 'Admin-controlled toggles to enable or disable client modules on demand without modifying code.',
+    environment: 'PRODUCTION',
+    isRequired: true,
+    isBootstrapOnly: false,
+    docsHelp:
+      'Toggles client-facing feature modules ON or OFF. Changes take effect immediately without requiring code deployment or server restart.',
+    fields: [
+      {
+        key: 'enableSignalsModule',
+        label: 'Enable Signals & Intelligence Module',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Enabled (Visible to Clients)', value: 'true' },
+          { label: 'Disabled (Hidden from Navigation)', value: 'false' },
+        ],
+      },
+      {
+        key: 'enableInvestModule',
+        label: 'Enable Investment Desk (Mutual Funds & SIP)',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Enabled', value: 'true' },
+          { label: 'Disabled', value: 'false' },
+        ],
+      },
+      {
+        key: 'enableSmcDematFlow',
+        label: 'Enable SMC Demat Partner CTAs',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Enabled', value: 'true' },
+          { label: 'Disabled (Scheduled Maintenance Message)', value: 'false' },
+        ],
+      },
+      {
+        key: 'enableLoanModule',
+        label: 'Enable Loans Desk (/borrow)',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Enabled', value: 'true' },
+          { label: 'Disabled', value: 'false' },
+        ],
+      },
+      {
+        key: 'enableInsuranceModule',
+        label: 'Enable Insurance Desk (/protect)',
+        type: 'select',
+        required: true,
+        options: [
+          { label: 'Enabled', value: 'true' },
+          { label: 'Disabled', value: 'false' },
+        ],
+      },
+    ],
+    defaultPublicConfig: {
+      enableSignalsModule: 'true',
+      enableInvestModule: 'true',
+      enableSmcDematFlow: 'true',
+      enableLoanModule: 'true',
+      enableInsuranceModule: 'true',
+    },
+  },
 };

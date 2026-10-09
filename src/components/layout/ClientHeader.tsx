@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Bell, Shield, LogOut } from 'lucide-react';
 
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
+import { TradosphereLogo } from '@/components/ui/TradosphereLogo';
 
 interface ClientHeaderProps {
   userName?: string;
@@ -32,18 +33,8 @@ export function ClientHeader({
     <header className="sticky top-0 z-40 bg-[#0B111E]/95 backdrop-blur border-b border-slate-800/80 px-4 py-3">
       <div className="max-w-md md:max-w-lg lg:max-w-xl mx-auto flex items-center justify-between">
         {/* Brand identity */}
-        <Link href="/home" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shadow-sm text-sm">
-            TWM
-          </div>
-          <div>
-            <div className="text-sm font-bold tracking-tight text-white leading-tight">
-              Tradosphere
-            </div>
-            <div className="text-[10px] text-amber-400/90 font-medium tracking-wide flex items-center gap-1">
-              <Shield className="w-2.5 h-2.5 inline" /> AP • SMC Global
-            </div>
-          </div>
+        <Link href="/home" className="hover:opacity-95 transition-opacity">
+          <TradosphereLogo size="sm" showSubtitle={true} />
         </Link>
 
         {/* Header Right Actions */}
@@ -52,12 +43,18 @@ export function ClientHeader({
           <NotificationCenter initialUnreadCount={unreadNotificationsCount} />
 
           {/* User profile / Logout */}
-          <div className="flex items-center gap-1.5 pl-2 border-l border-slate-800">
+          <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
             <Link
               href="/account"
-              className="text-xs font-semibold text-slate-200 px-2 py-1 rounded-lg bg-slate-800/60 hover:bg-slate-800"
+              className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-xs font-bold hover:scale-105 transition-transform"
+              title="Account & Profile"
             >
-              {userName.split(' ')[0]}
+              {userName
+                .split(' ')
+                .map((n) => n[0])
+                .join('')
+                .slice(0, 2)
+                .toUpperCase() || 'RA'}
             </Link>
             <button
               onClick={handleLogout}

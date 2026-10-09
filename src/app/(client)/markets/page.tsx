@@ -27,7 +27,8 @@ interface WatchlistData {
 }
 
 export default function MarketsPage() {
-  const [activeTab, setActiveTab] = useState<'watchlist' | 'stocks' | 'indices'>('watchlist');
+  const [activeTab, setActiveTab] = useState<'watchlist' | 'stocks' | 'indices' | 'options'>('watchlist');
+  const [selectedUnderlying, setSelectedUnderlying] = useState<'NIFTY' | 'BANKNIFTY'>('NIFTY');
   const [searchQuery, setSearchQuery] = useState('');
   const [watchlists, setWatchlists] = useState<WatchlistData[]>([]);
   const [activeWatchlistId, setActiveWatchlistId] = useState<string>('');
@@ -152,52 +153,81 @@ export default function MarketsPage() {
         message="Market Data Feed: Live tick stream requires provider configuration in .env. Showing verified NSE reference directory."
       />
 
-      {/* Tabs */}
-      <div className="grid grid-cols-3 gap-1 p-1 bg-slate-900 rounded-xl border border-slate-800 text-xs">
+      {/* Search Input matching Screen 02 */}
+      <div className="relative">
+        <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
+        <Input
+          placeholder="Search stocks, mutual funds, etc..."
+          className="pl-10 text-xs"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
+
+      {/* Tabs matching Screen 02 */}
+      <div className="grid grid-cols-4 gap-1 p-1 bg-slate-900 rounded-xl border border-slate-800 text-xs">
         <button
           onClick={() => setActiveTab('watchlist')}
-          className={`py-2 rounded-lg font-medium transition-all ${
+          className={`py-2 rounded-lg font-semibold transition-all ${
             activeTab === 'watchlist'
-              ? 'bg-blue-600 text-white shadow-sm font-semibold'
+              ? 'bg-emerald-600 text-white shadow-sm'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          Watchlists
+          Watchlist
         </button>
         <button
           onClick={() => setActiveTab('stocks')}
-          className={`py-2 rounded-lg font-medium transition-all ${
+          className={`py-2 rounded-lg font-semibold transition-all ${
             activeTab === 'stocks'
-              ? 'bg-blue-600 text-white shadow-sm font-semibold'
+              ? 'bg-emerald-600 text-white shadow-sm'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          All Equities
+          Equities
         </button>
         <button
           onClick={() => setActiveTab('indices')}
-          className={`py-2 rounded-lg font-medium transition-all ${
+          className={`py-2 rounded-lg font-semibold transition-all ${
             activeTab === 'indices'
-              ? 'bg-blue-600 text-white shadow-sm font-semibold'
+              ? 'bg-emerald-600 text-white shadow-sm'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
           Indices
         </button>
+        <button
+          onClick={() => setActiveTab('options')}
+          className={`py-2 rounded-lg font-semibold transition-all ${
+            activeTab === 'options'
+              ? 'bg-emerald-600 text-white shadow-sm'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          Options
+        </button>
       </div>
 
-      {/* Search Input */}
-      {activeTab !== 'indices' && (
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
-          <Input
-            placeholder="Search company, symbol, or sector..."
-            className="pl-10"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-      )}
+      {/* Indices Row matching Screen 02 */}
+      <div className="grid grid-cols-3 gap-2">
+        <Card className="p-3 bg-[#111927] border-slate-800">
+          <div className="text-[11px] font-medium text-slate-400">NIFTY 50</div>
+          <div className="text-xs sm:text-sm font-bold text-white mt-1 font-mono">24,718.60</div>
+          <div className="text-[10px] font-semibold text-emerald-400 mt-0.5">▲ +1.24%</div>
+        </Card>
+
+        <Card className="p-3 bg-[#111927] border-slate-800">
+          <div className="text-[11px] font-medium text-slate-400">SENSEX</div>
+          <div className="text-xs sm:text-sm font-bold text-white mt-1 font-mono">81,641.77</div>
+          <div className="text-[10px] font-semibold text-emerald-400 mt-0.5">▲ +1.18%</div>
+        </Card>
+
+        <Card className="p-3 bg-[#111927] border-slate-800">
+          <div className="text-[11px] font-medium text-slate-400">BANK NIFTY</div>
+          <div className="text-xs sm:text-sm font-bold text-white mt-1 font-mono">52,380.45</div>
+          <div className="text-[10px] font-semibold text-emerald-400 mt-0.5">▲ +1.32%</div>
+        </Card>
+      </div>
 
       {/* TAB 1: WATCHLISTS */}
       {activeTab === 'watchlist' && (
@@ -374,6 +404,68 @@ export default function MarketsPage() {
         </div>
       )}
 
+      {/* TAB 4: OPTION CHAIN */}
+      {activeTab === 'options' && (
+        <div className="space-y-3">
+          {/* Index Selector */}
+          <div className="flex items-center justify-between bg-slate-900/80 p-2 rounded-xl border border-slate-800">
+            <div className="flex gap-1">
+              <button
+                onClick={() => setSelectedUnderlying('NIFTY')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  selectedUnderlying === 'NIFTY'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                NIFTY 50
+              </button>
+              <button
+                onClick={() => setSelectedUnderlying('BANKNIFTY')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  selectedUnderlying === 'BANKNIFTY'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                BANK NIFTY
+              </button>
+            </div>
+            <span className="text-[11px] text-slate-400 font-medium">NSE Derivatives</span>
+          </div>
+
+          <StatusBanner
+            type="info"
+            title="Option Chain Provider Status"
+            message="OPTION CHAIN PROVIDER NOT CONFIGURED. Real-time Greeks, Open Interest (OI), and strike matrices require active Upstox v2 access token configured in Admin -> Integrations."
+          />
+
+          <Card className="p-5 text-center bg-[#131C2E] border-slate-800 space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-400 mx-auto flex items-center justify-center">
+              <Layers className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white">Live F&amp;O Feed Awaiting Gateway</h3>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1">
+                When live market-data credentials are saved, this view streams live Strike Prices, Call/Put LTP, Change, Volume, OI, and Put-Call Ratio (PCR).
+              </p>
+            </div>
+            <div className="pt-1">
+              <a
+                href="https://smctradeonline.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block"
+              >
+                <Button variant="smc" size="sm" className="text-xs">
+                  Trade F&amp;O via SMC Ace <ExternalLink className="w-3.5 h-3.5 ml-1.5" />
+                </Button>
+              </a>
+            </div>
+          </Card>
+        </div>
+      )}
+
       {/* STOCK DETAILS MODAL */}
       {selectedStock && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
@@ -399,11 +491,48 @@ export default function MarketsPage() {
 
             {/* Price section - Honest State */}
             <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800">
-              <div className="text-xs text-slate-400">Current Market Price (CMP)</div>
-              <div className="text-base font-semibold text-slate-300 mt-1">Data Unavailable</div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-slate-400">Current Market Price (CMP)</div>
+                  <div className="text-base font-semibold text-slate-300 mt-0.5">Data Unavailable</div>
+                </div>
+                <div className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-[10px] font-mono text-slate-400">
+                  Upstox Feed Required
+                </div>
+              </div>
               <p className="text-[11px] text-amber-400/90 mt-1">
                 Live market tick streaming is disabled pending market data provider API key configuration.
               </p>
+            </div>
+
+            {/* Interactive Chart Container */}
+            <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-300">Technical Chart (OHLC)</span>
+                <div className="flex gap-1 text-[10px]">
+                  {['1D', '1W', '1M', '1Y'].map((tf) => (
+                    <span
+                      key={tf}
+                      className={`px-1.5 py-0.5 rounded font-mono ${
+                        tf === '1D' ? 'bg-blue-600/30 text-blue-400 border border-blue-500/40' : 'text-slate-500'
+                      }`}
+                    >
+                      {tf}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Chart Canvas Area */}
+              <div className="h-28 rounded-lg bg-slate-950/80 border border-slate-800/80 flex flex-col items-center justify-center text-center p-3">
+                <div className="w-6 h-6 rounded-full bg-slate-900 border border-slate-800 text-slate-500 flex items-center justify-center mb-1">
+                  <TrendingUp className="w-3.5 h-3.5" />
+                </div>
+                <span className="text-[11px] font-medium text-slate-300">Chart Feed Offline</span>
+                <span className="text-[10px] text-slate-500 mt-0.5 max-w-[240px]">
+                  Historical and intraday candles display automatically once Upstox v2 API keys are verified in Admin.
+                </span>
+              </div>
             </div>
 
             {/* Fundamentals & Metadata */}

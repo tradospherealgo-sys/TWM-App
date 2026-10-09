@@ -36,6 +36,7 @@ export default async function AdminApplicationsPage() {
               <th className="px-4 py-3">Client</th>
               <th className="px-4 py-3">Category</th>
               <th className="px-4 py-3">Assigned Desk</th>
+              <th className="px-4 py-3">Attached Docs</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Created</th>
             </tr>
@@ -57,6 +58,30 @@ export default async function AdminApplicationsPage() {
                 </td>
                 <td className="px-4 py-3 text-slate-300">
                   {app.assignedEmployee?.user.name || <span className="text-amber-400 italic">Unassigned</span>}
+                </td>
+                <td className="px-4 py-3">
+                  {app.documents && app.documents.length > 0 ? (
+                    <div className="space-y-1">
+                      {app.documents.map((doc) => (
+                        <div key={doc.id} className="flex items-center gap-1.5 text-[11px]">
+                          <a
+                            href={`/api/documents/download?id=${doc.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:underline flex items-center gap-0.5 font-medium"
+                          >
+                            <FileText className="w-3 h-3 text-blue-400" />
+                            <span>{doc.title}</span>
+                          </a>
+                          <span className={`text-[9px] px-1 py-0.2 rounded font-mono ${doc.status === 'VERIFIED' ? 'bg-emerald-950 text-emerald-300' : 'bg-amber-950 text-amber-300'}`}>
+                            {doc.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-slate-500 text-[11px]">None attached</span>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <StatusBadge status={app.status} />

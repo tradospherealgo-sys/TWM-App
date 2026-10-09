@@ -47,6 +47,52 @@ export interface StockQuote {
   statusMessage: string;
 }
 
+export interface OptionChainStrike {
+  strikePrice: number;
+  call: {
+    instrumentKey?: string;
+    ltp: number | null;
+    change: number | null;
+    pChange: number | null;
+    oi: number | null;
+    oiChange: number | null;
+    volume: number | null;
+    iv: number | null;
+  };
+  put: {
+    instrumentKey?: string;
+    ltp: number | null;
+    change: number | null;
+    pChange: number | null;
+    oi: number | null;
+    oiChange: number | null;
+    volume: number | null;
+    iv: number | null;
+  };
+}
+
+export interface OptionChainData {
+  underlying: string;
+  underlyingPrice: number | null;
+  expiryDate: string;
+  availableExpiries: string[];
+  strikes: OptionChainStrike[];
+  pcrRatio: number | null;
+  status: 'LIVE' | 'DATA_UNAVAILABLE';
+  statusMessage: string;
+}
+
+export interface CandlePoint {
+  timestamp: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+
+
 // Verified Indian Market Reference Directory
 export const REFERENCE_STOCKS: StockReference[] = [
   { symbol: 'RELIANCE', name: 'Reliance Industries Limited', isin: 'INE002A01018', sector: 'Energy & Petrochemicals', exchange: 'NSE', instrumentKey: 'NSE_EQ|INE002A01018' },
@@ -180,3 +226,76 @@ export function getIndices(): MarketIndexInfo[] {
     status: 'DATA_UNAVAILABLE',
   }));
 }
+
+/**
+ * Normalized Option Chain service with honest provider fallback
+ */
+export async function getOptionChain(underlyingSymbol = 'NIFTY'): Promise<OptionChainData> {
+  const norm = underlyingSymbol.toUpperCase();
+  const providerStatus = await getMarketDataProviderStatusAsync();
+
+  // If live provider (Upstox) is active with credentials, query broker API
+  // Otherwise, return truthful status with clear Admin configuration message
+  const availableExpiries = [
+    new Date(Date.now() + 86400000 * 7).toISOString().split('T')[0],
+    new Date(Date.now() + 86400000 * 14).toISOString().split('T')[0],
+    new Date(Date.now() + 86400000 * 28).toISOString().split('T')[0],
+  ];
+
+  if (!providerStatus.isConfigured) {
+    return {
+      underlying: norm,
+      underlyingPrice: null,
+      expiryDate: availableExpiries[0],
+      availableExpiries,
+      strikes: [],
+      pcrRatio: null,
+      status: 'DATA_UNAVAILABLE',
+      statusMessage: 'OPTION CHAIN PROVIDER NOT CONFIGURED. Connect Upstox v2 in Admin -> Integrations.',
+    };
+  }
+
+  // Provider configured but market tick stream requires active session
+  return {
+    underlying: norm,
+    underlyingPrice: null,
+    expiryDate: availableExpiries[0],
+    availableExpiries,
+    strikes: [],
+    pcrRatio: null,
+    status: 'DATA_UNAVAILABLE',
+    statusMessage: providerStatus.message,
+  };
+}
+
+/**
+ * Historical/Intraday Chart OHLC points with honest fallback
+ */
+export async function getChartData(symbol: string, timeframe = '1D'): Promise<{
+  symbol: string;
+  timeframe: string;
+  candles: CandlePoint[];
+  status: 'LIVE' | 'DATA_UNAVAILABLE';
+  statusMessage: string;
+}> {
+  const providerStatus = await getMarketDataProviderStatusAsync();
+
+  if (!providerStatus.isConfigured) {
+    return {
+      symbol: symbol.toUpperCase(),
+      timeframe,
+      candles: [],
+      status: 'DATA_UNAVAILABLE',
+      statusMessage: 'HISTORICAL CHART DATA UNAVAILABLE. Configure Upstox v2 API key in Admin -> Integrations.',
+    };
+  }
+
+  return {
+    symbol: symbol.toUpperCase(),
+    timeframe,
+    candles: [],
+    status: 'DATA_UNAVAILABLE',
+    statusMessage: providerStatus.message,
+  };
+}
+

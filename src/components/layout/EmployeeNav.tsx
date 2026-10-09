@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
+import { TradosphereLogo } from '@/components/ui/TradosphereLogo';
 
 export function EmployeeNav({ employeeName = 'Employee' }: { employeeName?: string }) {
   const pathname = usePathname();
@@ -46,13 +47,8 @@ export function EmployeeNav({ employeeName = 'Employee' }: { employeeName?: stri
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
         {/* Brand & Badge */}
         <div className="flex items-center gap-3">
-          <Link href="/employee" className="flex items-center gap-2">
-            <span className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center font-bold text-white text-xs">
-              TWM
-            </span>
-            <div className="font-bold text-slate-100 text-sm hidden sm:block">
-              Tradosphere Employee OS
-            </div>
+          <Link href="/employee" className="hover:opacity-95 transition-opacity">
+            <TradosphereLogo size="sm" showSubtitle={false} />
           </Link>
           <span className="px-2 py-0.5 text-[10px] font-semibold bg-emerald-950 text-emerald-300 border border-emerald-800/80 rounded-full">
             Staff Desk
@@ -71,7 +67,7 @@ export function EmployeeNav({ employeeName = 'Employee' }: { employeeName?: stri
                 className={clsx(
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
                   isActive
-                    ? 'bg-slate-800 text-blue-400 font-semibold'
+                    ? 'bg-slate-800 text-emerald-400 font-semibold'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                 )}
               >
@@ -111,7 +107,7 @@ export function EmployeeNav({ employeeName = 'Employee' }: { employeeName?: stri
               href={link.href}
               className={clsx(
                 'flex items-center gap-1 px-2.5 py-1.5 rounded-md whitespace-nowrap text-xs font-medium',
-                isActive ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:text-slate-200'
+                isActive ? 'bg-emerald-600/20 text-emerald-400' : 'text-slate-400 hover:text-slate-200'
               )}
             >
               <Icon className="w-3 h-3" />

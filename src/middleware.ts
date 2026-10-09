@@ -4,8 +4,21 @@ import { jwtVerify } from 'jose';
 import { applySecurityHeaders } from '@/lib/security-headers';
 
 const SESSION_COOKIE_NAME = 'twm_session';
-const JWT_SECRET_STRING = process.env.JWT_SECRET || 'twm_development_session_secret_change_in_production_min_32_chars!';
-const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_STRING);
+const DEFAULT_DEV_JWT_SECRET = 'twm_development_session_secret_change_in_production_min_32_chars!';
+
+function getEdgeJwtSecret(): Uint8Array | null {
+  const secret = (process.env.JWT_SECRET || '').trim();
+  if (!secret || secret === DEFAULT_DEV_JWT_SECRET) {
+    if (process.env.NODE_ENV === 'production') {
+      return null;
+    }
+    return new TextEncoder().encode(DEFAULT_DEV_JWT_SECRET);
+  }
+  if (secret.length < 32 && process.env.NODE_ENV === 'production') {
+    return null;
+  }
+  return new TextEncoder().encode(secret);
+}
 
 interface JWTPayload {
   userId: string;
@@ -33,11 +46,14 @@ export async function middleware(request: NextRequest) {
   let user: JWTPayload | null = null;
 
   if (token) {
-    try {
-      const { payload } = await jwtVerify(token, JWT_SECRET);
-      user = payload as unknown as JWTPayload;
-    } catch {
-      user = null;
+    const jwtSecretKey = getEdgeJwtSecret();
+    if (jwtSecretKey) {
+      try {
+        const { payload } = await jwtVerify(token, jwtSecretKey);
+        user = payload as unknown as JWTPayload;
+      } catch {
+        user = null;
+      }
     }
   }
 
@@ -68,7 +84,10 @@ export async function middleware(request: NextRequest) {
 
   // Protected route checking
   const isAdminRoute = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
-  const isEmployeeRoute = pathname.startsWith('/employee') || pathname.startsWith('/api/employee');
+  const isEmployeeRoute =
+    pathname.startsWith('/employee') ||
+    pathname.startsWith('/api/employee') ||
+    (pathname.startsWith('/api/crm') && !isPublicApi);
   const isProtectedApiRoute = pathname.startsWith('/api/') && !isPublicApi;
   const isClientRoute =
     pathname === '/' ||

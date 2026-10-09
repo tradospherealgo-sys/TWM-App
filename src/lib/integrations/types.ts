@@ -20,7 +20,9 @@ export type IntegrationCategory =
   | 'AI'
   | 'COMMUNICATION'
   | 'STORAGE'
-  | 'FINANCIAL_SERVICE';
+  | 'AUTH'
+  | 'FINANCIAL_SERVICE'
+  | 'SETTINGS';
 
 export interface IntegrationFieldDefinition {
   key: string;

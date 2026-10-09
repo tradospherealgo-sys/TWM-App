@@ -63,34 +63,48 @@ export async function uploadVaultFile(
   const docIdentifier = options.docId || `doc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const relativePath = `customers/${options.userId}/${docIdentifier}_${safeName}`;
 
-  if (STORAGE_DRIVER === 'supabase' && SUPABASE_SERVICE_ROLE_KEY) {
-    const uploadUrl = `${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${relativePath}`;
+  if (STORAGE_DRIVER === 'supabase') {
+    if (!SUPABASE_SERVICE_ROLE_KEY) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error(
+          'FATAL: Production KYC document vault requires valid SUPABASE_SERVICE_ROLE_KEY configured for Supabase cloud storage. Filesystem write is strictly disabled in production.'
+        );
+      }
+    } else {
+      const uploadUrl = `${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${relativePath}`;
 
-    const res = await fetch(uploadUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
-        'Content-Type': options.mimeType || 'application/pdf',
-        'x-upsert': 'true',
-      },
-      body: new Uint8Array(buffer),
-    });
+      const res = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          'Content-Type': options.mimeType || 'application/pdf',
+          'x-upsert': 'true',
+        },
+        body: new Uint8Array(buffer),
+      });
 
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error('Supabase Storage Upload Error:', res.status, errText);
-      throw new Error(`Failed to upload document to secure cloud vault: HTTP ${res.status}`);
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error('Supabase Storage Upload Error:', res.status, errText);
+        throw new Error(`Failed to upload document to secure cloud vault: HTTP ${res.status}`);
+      }
+
+      return {
+        storageKey: relativePath,
+        fileSize: buffer.length,
+        mimeType: options.mimeType || 'application/pdf',
+      };
     }
-
-    return {
-      storageKey: relativePath,
-      fileSize: buffer.length,
-      mimeType: options.mimeType || 'application/pdf',
-    };
   }
 
-  // Local filesystem fallback (used only if explicitly configured for offline local dev)
+  // Local filesystem fallback (strictly permitted only in offline local development)
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'FATAL: Production document storage requires an active cloud storage driver (Supabase) with valid credentials. Local filesystem write is strictly disabled in production.'
+    );
+  }
+
   const uploadsDir = path.join(process.cwd(), 'uploads');
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
@@ -153,7 +167,11 @@ export async function downloadVaultFile(
     }
   }
 
-  // Check local filesystem for backward compatibility
+  // Check local filesystem for backward compatibility in non-production environments only
+  if (process.env.NODE_ENV === 'production') {
+    return null;
+  }
+
   const safeLocalKey = path.basename(storageKey);
   const localFilePath = path.join(process.cwd(), 'uploads', safeLocalKey);
 
@@ -199,7 +217,11 @@ export async function deleteVaultFile(storageKey: string): Promise<boolean> {
     }
   }
 
-  // Also remove local file if present
+  // Also remove local file if present in non-production environments
+  if (process.env.NODE_ENV === 'production') {
+    return true;
+  }
+
   const safeLocalKey = path.basename(storageKey);
   const localFilePath = path.join(process.cwd(), 'uploads', safeLocalKey);
   if (fs.existsSync(localFilePath)) {

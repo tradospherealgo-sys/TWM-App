@@ -18,10 +18,15 @@ export default async function ClientLayout({
     redirect('/login');
   }
 
-  // Count unread notifications
-  const unreadCount = await prisma.notification.count({
-    where: { userId: user.id, isRead: false },
-  });
+  // Count unread notifications safely
+  let unreadCount = 0;
+  try {
+    unreadCount = await prisma.notification.count({
+      where: { userId: user.id, isRead: false },
+    });
+  } catch (err) {
+    unreadCount = 0;
+  }
 
   return (
     <div className="min-h-screen bg-[#0B111E] text-slate-100 flex flex-col">

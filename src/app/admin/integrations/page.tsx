@@ -52,7 +52,14 @@ export default function AdminIntegrationsPage() {
       setLoading(true);
       const res = await fetch('/api/admin/integrations');
       const data = await res.json();
-      if (data.integrations) {
+      if (!res.ok) {
+        setBannerNotice({
+          type: 'error',
+          message: data.error || `HTTP ${res.status}: Failed to load integration records. Check administrator permissions.`,
+        });
+        return;
+      }
+      if (data.integrations && Array.isArray(data.integrations)) {
         setIntegrations(data.integrations);
         // Initialize form data
         const initialForm: Record<string, Record<string, any>> = {};
@@ -64,8 +71,12 @@ export default function AdminIntegrationsPage() {
         }
         setFormData(initialForm);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Failed to load integrations:', e);
+      setBannerNotice({
+        type: 'error',
+        message: e?.message || 'Network error while retrieving integrations.',
+      });
     } finally {
       setLoading(false);
     }
@@ -229,6 +240,17 @@ export default function AdminIntegrationsPage() {
       case 'UPSTOX':
       case 'MARKET_DATA':
         return <Activity className="w-5 h-5 text-blue-400" />;
+      case 'OPTION_CHAIN':
+        return <Layers className="w-5 h-5 text-cyan-400" />;
+      case 'CHARTS':
+        return <Activity className="w-5 h-5 text-emerald-400" />;
+      case 'GOOGLE_AUTH':
+      case 'GOOGLE_SERVICES':
+        return <Lock className="w-5 h-5 text-red-400" />;
+      case 'PAYMENTS':
+        return <ShieldCheck className="w-5 h-5 text-green-400" />;
+      case 'FEATURE_FLAGS':
+        return <Settings2 className="w-5 h-5 text-pink-400" />;
       case 'SMC_GLOBAL':
         return <ShieldCheck className="w-5 h-5 text-amber-400" />;
       case 'AI_PROVIDER':
@@ -316,10 +338,10 @@ export default function AdminIntegrationsPage() {
           <div>
             <h2 className="text-sm font-bold text-white flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              TWM Integration Health Dashboard
+              Tradosphere Integration Health Dashboard
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              Live status across all 9 core subsystems. No source code or .env editing required.
+              Live status across all 15 platform subsystems. No source code or .env editing required.
             </p>
           </div>
 
@@ -327,13 +349,21 @@ export default function AdminIntegrationsPage() {
             <span className="text-xs text-slate-300">
               <strong className="text-emerald-400">{connectedCount}</strong> / {integrations.length} Active
             </span>
-            {blockers.length === 0 ? (
+            {loading ? (
+              <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-800 text-slate-300 border border-slate-700 animate-pulse">
+                SYNCING REGISTRY...
+              </span>
+            ) : integrations.length > 0 && blockers.length === 0 ? (
               <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">
                 READY FOR LAUNCH
               </span>
-            ) : (
+            ) : blockers.length > 0 ? (
               <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-950 text-amber-300 border border-amber-800">
                 {blockers.length} CREDENTIALS PENDING
+              </span>
+            ) : (
+              <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-900 text-slate-400 border border-slate-800">
+                REGISTRY EMPTY
               </span>
             )}
           </div>
@@ -427,8 +457,40 @@ export default function AdminIntegrationsPage() {
 
       {/* Integration Cards List */}
       <div className="space-y-4">
-        {filteredIntegrations.map((item) => {
-          const isEditing = activeEditingKey === item.providerKey;
+        {loading ? (
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i} className="p-5 bg-[#131C2E] border-slate-800 animate-pulse space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-slate-800" />
+                    <div className="space-y-1.5">
+                      <div className="h-4 w-36 bg-slate-800 rounded" />
+                      <div className="h-3 w-64 bg-slate-800/60 rounded" />
+                    </div>
+                  </div>
+                  <div className="h-6 w-24 bg-slate-800 rounded-full" />
+                </div>
+                <div className="h-2 w-full bg-slate-800/80 rounded" />
+              </Card>
+            ))}
+          </div>
+        ) : filteredIntegrations.length === 0 ? (
+          <Card className="p-8 text-center bg-[#131C2E] border-slate-800 space-y-3">
+            <AlertTriangle className="w-8 h-8 text-amber-400 mx-auto" />
+            <div className="text-sm font-semibold text-white">No Integrations Available</div>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              {filter !== 'ALL'
+                ? `No integration cards match the "${filter}" filter view.`
+                : 'Could not retrieve integration subsystem cards from registry.'}
+            </p>
+            <Button size="sm" variant="outline" onClick={fetchIntegrations} className="text-xs">
+              <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry Fetching Integrations
+            </Button>
+          </Card>
+        ) : (
+          filteredIntegrations.map((item) => {
+            const isEditing = activeEditingKey === item.providerKey;
           const isTesting = testingKeys[item.providerKey] || false;
           const isSaving = savingKeys[item.providerKey] || false;
           const currentForm = formData[item.providerKey] || { secrets: {}, publicConfig: {} };
@@ -728,7 +790,7 @@ export default function AdminIntegrationsPage() {
               )}
             </Card>
           );
-        })}
+        }))}
       </div>
     </div>
   );
