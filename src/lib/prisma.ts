@@ -26,6 +26,11 @@ if ((rawUrl.startsWith('"') && rawUrl.endsWith('"')) || (rawUrl.startsWith("'") 
 rawUrl = rawUrl.replace(/^\\"/, '').replace(/\\"$/, '').trim();
 
 if (rawUrl) {
+  // Supabase Transaction Pooler (port 6543) requires pgbouncer=true so Prisma avoids prepared statement collisions
+  if ((rawUrl.includes(':6543') || rawUrl.includes('pooler.supabase.com')) && !rawUrl.includes('pgbouncer=true')) {
+    const separator = rawUrl.includes('?') ? '&' : '?';
+    rawUrl = `${rawUrl}${separator}pgbouncer=true`;
+  }
   process.env.DATABASE_URL = rawUrl;
 } else {
   process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/twm_db';
