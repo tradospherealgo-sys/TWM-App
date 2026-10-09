@@ -43,12 +43,18 @@ export function ClientHeader({
           <NotificationCenter initialUnreadCount={unreadNotificationsCount} />
 
           {/* User profile / Logout */}
-          <div className="flex items-center gap-1.5 pl-2 border-l border-slate-800">
+          <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
             <Link
               href="/account"
-              className="text-xs font-semibold text-slate-200 px-2 py-1 rounded-lg bg-slate-800/60 hover:bg-slate-800"
+              className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-xs font-bold hover:scale-105 transition-transform"
+              title="Account & Profile"
             >
-              {userName.split(' ')[0]}
+              {userName
+                .split(' ')
+                .map((n) => n[0])
+                .join('')
+                .slice(0, 2)
+                .toUpperCase() || 'RA'}
             </Link>
             <button
               onClick={handleLogout}

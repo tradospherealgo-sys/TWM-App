@@ -67,7 +67,7 @@ export function EmployeeNav({ employeeName = 'Employee' }: { employeeName?: stri
                 className={clsx(
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
                   isActive
-                    ? 'bg-slate-800 text-blue-400 font-semibold'
+                    ? 'bg-slate-800 text-emerald-400 font-semibold'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                 )}
               >
@@ -107,7 +107,7 @@ export function EmployeeNav({ employeeName = 'Employee' }: { employeeName?: stri
               href={link.href}
               className={clsx(
                 'flex items-center gap-1 px-2.5 py-1.5 rounded-md whitespace-nowrap text-xs font-medium',
-                isActive ? 'bg-blue-600/20 text-blue-400' : 'text-slate-400 hover:text-slate-200'
+                isActive ? 'bg-emerald-600/20 text-emerald-400' : 'text-slate-400 hover:text-slate-200'
               )}
             >
               <Icon className="w-3 h-3" />

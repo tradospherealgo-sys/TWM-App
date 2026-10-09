@@ -50,3 +50,5 @@ supabase/.temp/
 # UI reference assets
 reference/
 public/*reference.png
+.vercel
+.env*

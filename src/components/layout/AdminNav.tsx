@@ -12,8 +12,10 @@ import {
   ScrollText,
   Settings2,
   LayoutDashboard,
+  FolderLock,
   LogOut,
   Activity,
+  ExternalLink,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
@@ -37,6 +39,7 @@ export function AdminNav({ adminName = 'Administrator' }: { adminName?: string }
     { label: 'Products', href: '/admin/products', icon: Layers },
     { label: 'Signals', href: '/admin/signals', icon: Activity },
     { label: 'Applications', href: '/admin/applications', icon: FileCheck2 },
+    { label: 'KYC Vault', href: '/admin/documents', icon: FolderLock },
     { label: 'Audit Logs', href: '/admin/audit-logs', icon: ScrollText },
     { label: 'Integrations', href: '/admin/integrations', icon: Settings2 },
     { label: 'System Health', href: '/admin/system-health', icon: Activity },
@@ -80,6 +83,22 @@ export function AdminNav({ adminName = 'Administrator' }: { adminName?: string }
 
         {/* User profile, Notifications & Logout */}
         <div className="flex items-center gap-2.5">
+          <div className="hidden xl:flex items-center gap-1.5 mr-1 border-r border-slate-800 pr-2.5">
+            <Link
+              href="/home"
+              className="text-[11px] px-2 py-1 rounded-md bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center gap-1 transition-colors border border-slate-700/60"
+            >
+              <span>Client View</span>
+              <ExternalLink className="w-2.5 h-2.5 text-slate-400" />
+            </Link>
+            <Link
+              href="/employee"
+              className="text-[11px] px-2 py-1 rounded-md bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center gap-1 transition-colors border border-slate-700/60"
+            >
+              <span>Staff Desk</span>
+              <ExternalLink className="w-2.5 h-2.5 text-slate-400" />
+            </Link>
+          </div>
           <NotificationCenter />
           <div className="text-right hidden sm:block">
             <div className="text-xs font-semibold text-slate-200">{adminName}</div>

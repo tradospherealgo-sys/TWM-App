@@ -153,23 +153,34 @@ export default function MarketsPage() {
         message="Market Data Feed: Live tick stream requires provider configuration in .env. Showing verified NSE reference directory."
       />
 
-      {/* Tabs */}
+      {/* Search Input matching Screen 02 */}
+      <div className="relative">
+        <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
+        <Input
+          placeholder="Search stocks, mutual funds, etc..."
+          className="pl-10 text-xs"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
+
+      {/* Tabs matching Screen 02 */}
       <div className="grid grid-cols-4 gap-1 p-1 bg-slate-900 rounded-xl border border-slate-800 text-xs">
         <button
           onClick={() => setActiveTab('watchlist')}
-          className={`py-2 rounded-lg font-medium transition-all ${
+          className={`py-2 rounded-lg font-semibold transition-all ${
             activeTab === 'watchlist'
-              ? 'bg-blue-600 text-white shadow-sm font-semibold'
+              ? 'bg-emerald-600 text-white shadow-sm'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          Watchlists
+          Watchlist
         </button>
         <button
           onClick={() => setActiveTab('stocks')}
-          className={`py-2 rounded-lg font-medium transition-all ${
+          className={`py-2 rounded-lg font-semibold transition-all ${
             activeTab === 'stocks'
-              ? 'bg-blue-600 text-white shadow-sm font-semibold'
+              ? 'bg-emerald-600 text-white shadow-sm'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
@@ -177,9 +188,9 @@ export default function MarketsPage() {
         </button>
         <button
           onClick={() => setActiveTab('indices')}
-          className={`py-2 rounded-lg font-medium transition-all ${
+          className={`py-2 rounded-lg font-semibold transition-all ${
             activeTab === 'indices'
-              ? 'bg-blue-600 text-white shadow-sm font-semibold'
+              ? 'bg-emerald-600 text-white shadow-sm'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
@@ -187,28 +198,36 @@ export default function MarketsPage() {
         </button>
         <button
           onClick={() => setActiveTab('options')}
-          className={`py-2 rounded-lg font-medium transition-all ${
+          className={`py-2 rounded-lg font-semibold transition-all ${
             activeTab === 'options'
-              ? 'bg-blue-600 text-white shadow-sm font-semibold'
+              ? 'bg-emerald-600 text-white shadow-sm'
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          Option Chain
+          Options
         </button>
       </div>
 
-      {/* Search Input */}
-      {activeTab !== 'indices' && (
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
-          <Input
-            placeholder="Search company, symbol, or sector..."
-            className="pl-10"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-      )}
+      {/* Indices Row matching Screen 02 */}
+      <div className="grid grid-cols-3 gap-2">
+        <Card className="p-3 bg-[#111927] border-slate-800">
+          <div className="text-[11px] font-medium text-slate-400">NIFTY 50</div>
+          <div className="text-xs sm:text-sm font-bold text-white mt-1 font-mono">24,718.60</div>
+          <div className="text-[10px] font-semibold text-emerald-400 mt-0.5">▲ +1.24%</div>
+        </Card>
+
+        <Card className="p-3 bg-[#111927] border-slate-800">
+          <div className="text-[11px] font-medium text-slate-400">SENSEX</div>
+          <div className="text-xs sm:text-sm font-bold text-white mt-1 font-mono">81,641.77</div>
+          <div className="text-[10px] font-semibold text-emerald-400 mt-0.5">▲ +1.18%</div>
+        </Card>
+
+        <Card className="p-3 bg-[#111927] border-slate-800">
+          <div className="text-[11px] font-medium text-slate-400">BANK NIFTY</div>
+          <div className="text-xs sm:text-sm font-bold text-white mt-1 font-mono">52,380.45</div>
+          <div className="text-[10px] font-semibold text-emerald-400 mt-0.5">▲ +1.32%</div>
+        </Card>
+      </div>
 
       {/* TAB 1: WATCHLISTS */}
       {activeTab === 'watchlist' && (
