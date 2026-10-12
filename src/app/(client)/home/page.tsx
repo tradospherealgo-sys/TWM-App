@@ -79,48 +79,36 @@ export default async function ClientHomePage() {
         </div>
         <div className="text-right">
           <span className="text-[10px] text-slate-400 block mb-0.5">KYC Status</span>
-          <StatusBadge status={customerProfile?.kycStatus || 'VERIFIED'} />
+          <StatusBadge status={customerProfile?.kycStatus || 'PENDING'} />
         </div>
       </div>
 
-      {/* 2. Total Portfolio Value Card with Glowing Emerald Sparkline Chart */}
-      <Card className="p-4 sm:p-5 bg-gradient-to-br from-[#101b2b] via-[#0d1624] to-[#09101a] border-emerald-900/30 shadow-lg relative overflow-hidden">
-        <div className="flex items-start justify-between relative z-10">
+      {/* 2. Total Portfolio Value Card — Honest Unlinked / Awaiting Account State */}
+      <Card className="p-4 sm:p-5 bg-gradient-to-br from-[#101b2b] via-[#0d1624] to-[#09101a] border-slate-800 shadow-lg relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
           <div>
-            <span className="text-xs text-slate-400 font-medium">Total Portfolio Value</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-400 font-medium">Total Portfolio Value</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                Not Linked
+              </span>
+            </div>
             <div className="text-2xl sm:text-3xl font-extrabold text-white mt-1 tracking-tight font-mono">
-              ₹ 12,48,320
+              ₹ 0
             </div>
             <div className="flex items-center gap-1.5 mt-2">
-              <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-950/80 border border-emerald-800/60 px-2 py-0.5 rounded-full flex items-center gap-1">
-                ▲ +8.24% <span className="text-slate-400 font-normal">(Last 30 days)</span>
+              <span className="text-[11px] font-medium text-slate-400">
+                Holdings and ledger reside within partner broker SMC Ace. Link your account to view live valuation.
               </span>
             </div>
           </div>
 
-          {/* Sparkline chart SVG */}
-          <div className="w-32 h-16 sm:w-40 sm:h-20 shrink-0">
-            <svg viewBox="0 0 160 80" className="w-full h-full overflow-visible">
-              <defs>
-                <linearGradient id="homeSparklineGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#10b981" stopOpacity="0.35" />
-                  <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
-                </linearGradient>
-              </defs>
-              <path
-                d="M 0,60 Q 25,55 45,40 T 90,45 T 120,25 T 160,10 L 160,80 L 0,80 Z"
-                fill="url(#homeSparklineGrad)"
-              />
-              <path
-                d="M 0,60 Q 25,55 45,40 T 90,45 T 120,25 T 160,10"
-                fill="none"
-                stroke="#10b981"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-              <circle cx="160" cy="10" r="3.5" fill="#10b981" className="animate-ping opacity-75" />
-              <circle cx="160" cy="10" r="3" fill="#10b981" />
-            </svg>
+          <div className="shrink-0 flex items-center gap-2">
+            <Link href="/applications">
+              <Button size="sm" variant="outline" className="text-xs">
+                Link Demat Account
+              </Button>
+            </Link>
           </div>
         </div>
       </Card>
@@ -204,20 +192,20 @@ export default async function ClientHomePage() {
         <div className="grid grid-cols-3 gap-2">
           <Card className="p-3 bg-[#111927] border-slate-800">
             <div className="text-[11px] font-medium text-slate-400">NIFTY 50</div>
-            <div className="text-xs sm:text-sm font-bold text-white mt-1">24,718.60</div>
-            <div className="text-[10px] font-semibold text-emerald-400 mt-0.5">▲ +1.24%</div>
+            <div className="text-xs sm:text-sm font-bold text-slate-300 mt-1 font-mono">--</div>
+            <div className="text-[10px] font-medium text-amber-400/90 mt-0.5">Awaiting Live Feed</div>
           </Card>
 
           <Card className="p-3 bg-[#111927] border-slate-800">
             <div className="text-[11px] font-medium text-slate-400">SENSEX</div>
-            <div className="text-xs sm:text-sm font-bold text-white mt-1">81,641.77</div>
-            <div className="text-[10px] font-semibold text-emerald-400 mt-0.5">▲ +1.18%</div>
+            <div className="text-xs sm:text-sm font-bold text-slate-300 mt-1 font-mono">--</div>
+            <div className="text-[10px] font-medium text-amber-400/90 mt-0.5">Awaiting Live Feed</div>
           </Card>
 
           <Card className="p-3 bg-[#111927] border-slate-800">
             <div className="text-[11px] font-medium text-slate-400">USD/INR</div>
-            <div className="text-xs sm:text-sm font-bold text-white mt-1">83.12</div>
-            <div className="text-[10px] font-semibold text-emerald-400 mt-0.5">▲ +0.21%</div>
+            <div className="text-xs sm:text-sm font-bold text-slate-300 mt-1 font-mono">--</div>
+            <div className="text-[10px] font-medium text-amber-400/90 mt-0.5">Awaiting Live Feed</div>
           </Card>
         </div>
       </div>

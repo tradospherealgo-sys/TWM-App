@@ -5,20 +5,26 @@ import { getMarketDataProviderStatus } from '@/lib/adapters/market-data';
 export async function GET() {
   const smcStatus = getSMCIntegrationStatus();
   const marketStatus = getMarketDataProviderStatus();
-
   const aiConfigured = Boolean(process.env.AI_PROVIDER_API_KEY);
-  const storageDriver = process.env.STORAGE_DRIVER || 'local';
 
   return NextResponse.json({
     integrations: {
       smcGlobal: {
         name: 'SMC Global Securities (Authorised Person)',
-        ...smcStatus,
+        isConfigured: smcStatus.isConfigured,
+        status: smcStatus.status,
+        apCode: smcStatus.apCode,
+        onboardingUrl: smcStatus.onboardingUrl,
+        tradingPortalUrl: smcStatus.tradingPortalUrl,
+        message: smcStatus.message,
       },
       marketData: {
         name: 'Market Data Feed (NSE/BSE)',
+        isConfigured: marketStatus.isConfigured,
         status: marketStatus.isConfigured ? 'CONNECTED' : 'CONFIGURATION_REQUIRED',
-        ...marketStatus,
+        message: marketStatus.isConfigured
+          ? 'Live market data feed connected.'
+          : 'Live market data feed is awaiting provider configuration.',
       },
       aiCopilot: {
         name: 'AI Employee Copilot & Knowledge Assistant',
@@ -30,8 +36,7 @@ export async function GET() {
       storage: {
         name: 'Document Storage Vault',
         status: 'CONNECTED',
-        driver: storageDriver,
-        message: `Secured storage driver: ${storageDriver}`,
+        message: 'Secured document storage vault active.',
       },
     },
   });

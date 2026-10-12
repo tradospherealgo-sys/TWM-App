@@ -35,8 +35,14 @@ export async function GET(request: NextRequest) {
     whereClause.customerId = user.customerProfile.id;
   } else if (user.role === 'EMPLOYEE') {
     if (user.employeeProfile) {
-      // Employee sees assigned applications
-      whereClause.assignedEmployeeId = user.employeeProfile.id;
+      const dept = (user.employeeProfile.department || '').toLowerCase();
+      const isOperationsOrCompliance = dept.includes('operations') || dept.includes('compliance');
+      if (!isOperationsOrCompliance) {
+        whereClause.OR = [
+          { assignedEmployeeId: user.employeeProfile.id },
+          { customer: { assignedEmployeeId: user.employeeProfile.id } },
+        ];
+      }
     }
   } // ADMIN sees all applications
 
@@ -197,6 +203,21 @@ export async function POST(request: NextRequest) {
         if (!customer) {
           return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
         }
+
+        // Horizontal access control: verify employee assignment or operations/compliance department
+        if (user.role === 'EMPLOYEE') {
+          const myEmpId = user.employeeProfile?.id;
+          const dept = (user.employeeProfile?.department || '').toLowerCase();
+          const isOperationsOrCompliance = dept.includes('operations') || dept.includes('compliance');
+
+          if (!isOperationsOrCompliance && customer.assignedEmployeeId !== myEmpId) {
+            return NextResponse.json(
+              { error: 'Forbidden: You are not assigned to create applications for this customer' },
+              { status: 403 }
+            );
+          }
+        }
+
         targetCustomerId = customer.id;
         targetEmployeeId = customer.assignedEmployeeId || (user.employeeProfile ? user.employeeProfile.id : null);
       } else {

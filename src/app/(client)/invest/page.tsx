@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { StatusBanner } from '@/components/ui/StatusBanner';
+import { calculateSIP } from '@/lib/calculators';
 import {
   PieChart,
   Repeat,
@@ -50,15 +51,12 @@ function InvestContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionSuccess, setSubmissionSuccess] = useState<string | null>(null);
 
-  // Calculation Logic (Standard SIP Compound Formula)
-  const totalMonths = years * 12;
-  const monthlyRate = expectedRate / 100 / 12;
-  const totalInvested = monthlyAmount * totalMonths;
-  // FV = P * [((1 + i)^n - 1) / i] * (1 + i)
-  const estimatedFutureValue = Math.round(
-    monthlyAmount * ((Math.pow(1 + monthlyRate, totalMonths) - 1) / monthlyRate) * (1 + monthlyRate)
-  );
-  const estimatedGain = estimatedFutureValue - totalInvested;
+  // Pure calculation logic via shared calculators library
+  const { totalInvested, estimatedFutureValue, estimatedGain } = calculateSIP({
+    monthlyAmount,
+    years,
+    expectedRate,
+  });
 
   async function handleApply(productCategory: 'MUTUAL_FUND' | 'SIP' | 'IPO', productCode: string) {
     setIsSubmitting(true);
