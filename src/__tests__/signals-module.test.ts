@@ -11,10 +11,13 @@ import {
 } from '../lib/signals/ai-team';
 import {
   createSignal,
+  updateSignal,
   runAiReviewForSignal,
   recordHumanDecision,
   publishSignal,
   closeSignal,
+  withdrawSignal,
+  expireSignal,
   getSignalsList,
   getSignalDetail,
   hasActiveSignalsSubscription,
@@ -419,6 +422,111 @@ describe('TWM Signals & Market Intelligence Module', () => {
       expect(logs.length).toBeGreaterThan(0);
       const actions = logs.map((l) => l.action);
       expect(actions.some((a) => a.includes('SIGNAL_'))).toBe(true);
+    });
+  });
+
+  describe('5. Lifecycle Safety Gates: Invalidation on Edit, Withdrawal, Expiration, and Client Isolation', () => {
+    it('Approval Invalidation: editing an approved signal resets status to DRAFT and clears approval', async () => {
+      if (!isDatabaseAvailable) return;
+      // Create and approve a signal
+      const signal = await createSignal(
+        {
+          title: 'Signal For Edit Test',
+          category: 'EQUITY',
+          summary: 'Pre-edit summary',
+          content: 'Original thesis content',
+          source: 'TWM Internal Research Desk',
+          provider: 'SMC Global Securities',
+          author: 'Certified Analyst',
+          riskLevel: 'LOW',
+        },
+        adminUser.id
+      );
+
+      // Run AI review and approve
+      await runAiReviewForSignal(signal.id, adminUser.id);
+      const approved = await recordHumanDecision(signal.id, { action: 'APPROVE', notes: 'Approved for testing' }, adminUser.id);
+      expect(approved.status).toBe('APPROVED');
+
+      // Edit the approved signal
+      const edited = await updateSignal(
+        {
+          id: signal.id,
+          content: 'Modified thesis with updated risk factors',
+          changeReason: 'Updated valuation metrics',
+        },
+        adminUser.id
+      );
+
+      // Status must revert to DRAFT, version incremented, approval cleared
+      expect(edited.status).toBe('DRAFT');
+      expect(edited.version).toBe(2);
+      expect(edited.approvedByUserId).toBeNull();
+    });
+
+    it('Withdrawal Gate: withdrawing a signal marks it WITHDRAWN and excludes it from client access', async () => {
+      if (!isDatabaseAvailable) return;
+      const signal = await createSignal(
+        {
+          title: 'Signal For Withdrawal Test',
+          category: 'COMMODITY',
+          summary: 'Commodity outlook',
+          content: 'Crude oil analysis',
+          source: 'TWM Desk',
+          provider: 'SMC Global',
+          author: 'Analyst',
+          riskLevel: 'MODERATE',
+        },
+        adminUser.id
+      );
+
+      await runAiReviewForSignal(signal.id, adminUser.id);
+      await recordHumanDecision(signal.id, { action: 'APPROVE' }, adminUser.id);
+      const published = await publishSignal(signal.id, adminUser.id);
+      expect(published.status).toBe('PUBLISHED');
+
+      // Withdraw signal
+      const withdrawn = await withdrawSignal(signal.id, 'Market structure changed drastically', adminUser.id);
+      expect(withdrawn.status).toBe('WITHDRAWN');
+      expect(withdrawn.rejectionReason).toContain('Market structure changed');
+
+      // Verify client cannot access it
+      await expect(getSignalDetail(signal.id, clientUser)).rejects.toThrow('Signal not available');
+
+      const clientList = await getSignalsList(clientUser, {});
+      const foundInList = clientList.some((s) => s.id === signal.id);
+      expect(foundInList).toBe(false);
+    });
+
+    it('Expiration Gate: expired signals are automatically filtered out from client research', async () => {
+      if (!isDatabaseAvailable) return;
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const expiredSignal = await createSignal(
+        {
+          title: 'Expired Signal Test',
+          category: 'F_AND_O',
+          summary: 'Intraday setup',
+          content: 'Session trade',
+          source: 'TWM Desk',
+          provider: 'SMC Global',
+          author: 'Analyst',
+          riskLevel: 'HIGH',
+          validUntil: yesterday.toISOString(),
+        },
+        adminUser.id
+      );
+
+      await runAiReviewForSignal(expiredSignal.id, adminUser.id);
+      await recordHumanDecision(expiredSignal.id, { action: 'APPROVE' }, adminUser.id);
+      await publishSignal(expiredSignal.id, adminUser.id);
+
+      // Verify client list excludes this expired signal
+      const clientList = await getSignalsList(clientUser, {});
+      const foundExpired = clientList.some((s) => s.id === expiredSignal.id);
+      expect(foundExpired).toBe(false);
+
+      // Verify detail request rejects access
+      await expect(getSignalDetail(expiredSignal.id, clientUser)).rejects.toThrow('Signal has expired');
     });
   });
 });

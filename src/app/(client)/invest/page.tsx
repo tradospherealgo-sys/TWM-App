@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { StatusBanner } from '@/components/ui/StatusBanner';
+import { calculateSIP } from '@/lib/calculators';
 import {
   PieChart,
   Repeat,
@@ -50,15 +51,12 @@ function InvestContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionSuccess, setSubmissionSuccess] = useState<string | null>(null);
 
-  // Calculation Logic (Standard SIP Compound Formula)
-  const totalMonths = years * 12;
-  const monthlyRate = expectedRate / 100 / 12;
-  const totalInvested = monthlyAmount * totalMonths;
-  // FV = P * [((1 + i)^n - 1) / i] * (1 + i)
-  const estimatedFutureValue = Math.round(
-    monthlyAmount * ((Math.pow(1 + monthlyRate, totalMonths) - 1) / monthlyRate) * (1 + monthlyRate)
-  );
-  const estimatedGain = estimatedFutureValue - totalInvested;
+  // Pure calculation logic via shared calculators library
+  const { totalInvested, estimatedFutureValue, estimatedGain } = calculateSIP({
+    monthlyAmount,
+    years,
+    expectedRate,
+  });
 
   async function handleApply(productCategory: 'MUTUAL_FUND' | 'SIP' | 'IPO', productCode: string) {
     setIsSubmitting(true);
@@ -177,168 +175,70 @@ function InvestContent() {
         </button>
       </div>
 
-      {/* TAB 0: PORTFOLIO OVERVIEW MATCHING SCREEN 03 */}
+      {/* TAB 0: PORTFOLIO OVERVIEW — HONEST UNLINKED BROKER STATE */}
       {activeTab === 'overview' && (
         <div className="space-y-4">
-          {/* Card 1: Investment Value with Growth Curve */}
-          <Card className="p-4 sm:p-5 bg-gradient-to-br from-[#101b2b] via-[#0d1624] to-[#09101a] border-emerald-900/30 space-y-4">
-            <div>
-              <span className="text-xs text-slate-400 font-medium">Investment Value</span>
-              <div className="text-2xl sm:text-3xl font-extrabold text-white mt-1 tracking-tight font-mono">
-                ₹ 8,32,450
+          {/* Card 1: Investment Value — Truthful Unlinked State */}
+          <Card className="p-4 sm:p-5 bg-gradient-to-br from-[#101b2b] via-[#0d1624] to-[#09101a] border-slate-800 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 font-medium">Total Investment Value</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                    Not Linked
+                  </span>
+                </div>
+                <div className="text-2xl sm:text-3xl font-extrabold text-white mt-1 tracking-tight font-mono">
+                  ₹ 0
+                </div>
+                <div className="flex items-center gap-1.5 mt-2">
+                  <span className="text-[11px] font-medium text-slate-400">
+                    Holdings and ledger reside within partner broker SMC Ace. Link your account to view live valuation.
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-950/80 border border-emerald-800/60 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  ▲ +12.36% <span className="text-slate-400 font-normal">(Since Inception)</span>
-                </span>
+
+              <div className="shrink-0 flex items-center gap-2">
+                <Link href="/applications">
+                  <Button size="sm" variant="outline" className="text-xs">
+                    Link Demat Account
+                  </Button>
+                </Link>
               </div>
-            </div>
-
-            {/* Glowing Area Chart */}
-            <div className="w-full h-36 relative pt-2">
-              <svg viewBox="0 0 320 120" className="w-full h-full overflow-visible">
-                <defs>
-                  <linearGradient id="investAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
-                    <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-                <path
-                  d="M 0,95 Q 40,85 80,70 T 160,50 T 240,40 T 320,15 L 320,120 L 0,120 Z"
-                  fill="url(#investAreaGrad)"
-                />
-                <path
-                  d="M 0,95 Q 40,85 80,70 T 160,50 T 240,40 T 320,15"
-                  fill="none"
-                  stroke="#10b981"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                />
-                <circle cx="320" cy="15" r="4.5" fill="#10b981" className="animate-ping opacity-75" />
-                <circle cx="320" cy="15" r="4" fill="#10b981" />
-              </svg>
-            </div>
-
-            {/* Timeframe pill selectors */}
-            <div className="flex items-center justify-between border-t border-slate-800/80 pt-3">
-              {(['1M', '3M', '6M', '1Y', 'ALL'] as const).map((tf) => (
-                <button
-                  key={tf}
-                  onClick={() => setTimeframe(tf)}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                    timeframe === tf
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  {tf}
-                </button>
-              ))}
             </div>
           </Card>
 
-          {/* Card 2: Asset Allocation with Donut Chart */}
+          {/* Card 2: Asset Allocation & Investment Gateway */}
           <Card className="p-4 sm:p-5 bg-[#111927] border-slate-800 space-y-4">
-            <h2 className="text-sm font-bold text-white tracking-tight">Asset Allocation</h2>
-
-            <div className="flex items-center justify-between gap-6">
-              {/* Donut SVG Chart */}
-              <div className="w-28 h-28 relative shrink-0">
-                <svg viewBox="0 0 42 42" className="w-full h-full -rotate-90">
-                  <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#1e293b" strokeWidth="6" />
-                  {/* Equity: 52% */}
-                  <circle
-                    cx="21"
-                    cy="21"
-                    r="15.915"
-                    fill="transparent"
-                    stroke="#10b981"
-                    strokeWidth="6"
-                    strokeDasharray="52 48"
-                    strokeDashoffset="0"
-                  />
-                  {/* Debt: 28% */}
-                  <circle
-                    cx="21"
-                    cy="21"
-                    r="15.915"
-                    fill="transparent"
-                    stroke="#14b8a6"
-                    strokeWidth="6"
-                    strokeDasharray="28 72"
-                    strokeDashoffset="-52"
-                  />
-                  {/* Hybrid: 12% */}
-                  <circle
-                    cx="21"
-                    cy="21"
-                    r="15.915"
-                    fill="transparent"
-                    stroke="#06b6d4"
-                    strokeWidth="6"
-                    strokeDasharray="12 88"
-                    strokeDashoffset="-80"
-                  />
-                  {/* Others: 8% */}
-                  <circle
-                    cx="21"
-                    cy="21"
-                    r="15.915"
-                    fill="transparent"
-                    stroke="#64748b"
-                    strokeWidth="6"
-                    strokeDasharray="8 92"
-                    strokeDashoffset="-92"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="text-[11px] font-bold text-white">100%</span>
-                  <span className="text-[8px] text-slate-400 uppercase">Allocated</span>
-                </div>
-              </div>
-
-              {/* Legend List */}
-              <div className="space-y-2 flex-1 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-slate-300">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                    Equity
-                  </span>
-                  <span className="font-bold text-white font-mono">52%</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-slate-300">
-                    <span className="w-2.5 h-2.5 rounded-full bg-teal-500" />
-                    Debt
-                  </span>
-                  <span className="font-bold text-white font-mono">28%</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-slate-300">
-                    <span className="w-2.5 h-2.5 rounded-full bg-cyan-500" />
-                    Hybrid
-                  </span>
-                  <span className="font-bold text-white font-mono">12%</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-slate-300">
-                    <span className="w-2.5 h-2.5 rounded-full bg-slate-500" />
-                    Others
-                  </span>
-                  <span className="font-bold text-white font-mono">8%</span>
-                </div>
-              </div>
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold text-white tracking-tight">Portfolio &amp; Asset Allocation</h2>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                Awaiting Connection
+              </span>
             </div>
 
-            {/* CTA Button */}
-            <Button
-              variant="primary"
-              size="md"
-              onClick={() => setActiveTab('mf')}
-              className="w-full text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 mt-2"
-            >
-              Explore New Investments
-            </Button>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Once your Demat account or Mutual Fund folio is linked, your live asset allocation across Equity, Debt, and Hybrid schemes will automatically populate here.
+            </p>
+
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              <Button
+                variant="primary"
+                size="md"
+                onClick={() => setActiveTab('mf')}
+                className="w-full text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5"
+              >
+                Explore Mutual Funds
+              </Button>
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => setActiveTab('sip')}
+                className="w-full text-xs border-emerald-800/80 text-emerald-300 hover:bg-emerald-950/40 font-semibold py-2.5"
+              >
+                Calculate SIP Returns
+              </Button>
+            </div>
           </Card>
         </div>
       )}

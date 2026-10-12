@@ -40,4 +40,10 @@ describe('Authentication & RBAC Security Suite', () => {
     expect(getRoleDashboardPath('CLIENT')).toBe('/home');
     expect(getRoleDashboardPath('UNKNOWN')).toBe('/home');
   });
+
+  it('should fail secure and return null if no active session exists', async () => {
+    const { getCurrentUser } = await import('../lib/auth');
+    const user = await getCurrentUser();
+    expect(user).toBeNull();
+  });
 });

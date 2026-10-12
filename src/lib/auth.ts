@@ -118,22 +118,8 @@ export async function getCurrentUser() {
     if (!user || user.status !== 'ACTIVE') return null;
     return user;
   } catch (err: any) {
-    console.warn('[AUTH] Could not fetch user from DB, falling back to verified JWT session claims:', err?.message || err);
-    // Verified cryptographic JWT fallback so transient DB hiccups do not lock out authenticated users
-    return {
-      id: session.userId,
-      email: session.email,
-      name: session.name || session.email.split('@')[0],
-      phone: null,
-      role: session.role,
-      status: 'ACTIVE',
-      customerProfile: session.customerId
-        ? { id: session.customerId, customerCode: 'TWM-CUST', kycStatus: 'VERIFIED', pan: null, assignedEmployeeId: null }
-        : null,
-      employeeProfile: session.employeeId
-        ? { id: session.employeeId, employeeCode: 'TWM-EMP', department: 'Operations', designation: 'Staff' }
-        : null,
-    };
+    console.error('[AUTH] Database error verifying user session; failing closed for security:', err?.message || err);
+    return null;
   }
 }
 

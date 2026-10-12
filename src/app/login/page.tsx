@@ -213,6 +213,16 @@ function LoginForm() {
                 />
               </div>
 
+              <div className="flex items-center justify-between text-[11px] text-slate-400">
+                <span>Forgot password?</span>
+                <a
+                  href="mailto:admin@tradosphere.in?subject=Password%20Reset%20Request"
+                  className="text-blue-400 hover:text-blue-300 font-medium underline"
+                >
+                  Contact Operations Desk
+                </a>
+              </div>
+
               <Button type="submit" variant="primary" size="lg" className="w-full mt-2" isLoading={isLoading}>
                 Sign In <ArrowRight className="w-4 h-4 ml-1.5" />
               </Button>
@@ -234,6 +244,13 @@ function LoginForm() {
                 >
                   Enquire online
                 </button>
+              </p>
+              <p className="text-[11px] text-slate-500 pt-1 leading-normal">
+                Locked out or need password reset? Contact operations at{' '}
+                <a href="mailto:admin@tradosphere.in" className="text-slate-400 underline">
+                  admin@tradosphere.in
+                </a>{' '}
+                or reach your relationship manager.
               </p>
             </div>
           </div>

@@ -51,16 +51,23 @@ export async function PATCH(
     }
 
     // Horizontal access control:
-    // If EMPLOYEE, verify application is assigned to this employee
-    if (
-      user.role === 'EMPLOYEE' &&
-      existing.assignedEmployeeId &&
-      existing.assignedEmployeeId !== user.employeeProfile?.id
-    ) {
-      return NextResponse.json(
-        { error: 'Forbidden: You are not authorized to update applications assigned to other staff' },
-        { status: 403 }
-      );
+    // If EMPLOYEE, verify application is assigned to this employee, or customer is assigned, or in Operations/Compliance
+    if (user.role === 'EMPLOYEE') {
+      const myEmpId = user.employeeProfile?.id;
+      const dept = (user.employeeProfile?.department || '').toLowerCase();
+      const isOperationsOrCompliance = dept.includes('operations') || dept.includes('compliance');
+
+      if (!isOperationsOrCompliance) {
+        const isAssignedApp = existing.assignedEmployeeId === myEmpId;
+        const isAssignedCustomer = existing.customer?.assignedEmployeeId === myEmpId;
+
+        if (!isAssignedApp && !isAssignedCustomer) {
+          return NextResponse.json(
+            { error: 'Forbidden: You are not assigned to this application or customer' },
+            { status: 403 }
+          );
+        }
+      }
     }
 
     const updated = await prisma.application.update({

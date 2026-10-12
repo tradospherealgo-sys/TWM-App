@@ -88,6 +88,67 @@ export async function POST(
       }
     }
 
+    // Synchronize Customer KYC status based on verification outcome
+    const targetCustomerId = document.customerId || document.customer?.id;
+    if (targetCustomerId) {
+      if (status === 'REJECTED') {
+        await prisma.customer.update({
+          where: { id: targetCustomerId },
+          data: { kycStatus: 'REJECTED' },
+        });
+
+        await logActivity({
+          actorUserId: user.id,
+          actorRole: user.role,
+          action: 'KYC_STATUS_UPDATE',
+          entityType: 'Customer',
+          entityId: targetCustomerId,
+          details: { kycStatus: 'REJECTED', triggeredByDocId: params.id, reason: notes },
+        });
+      } else if (status === 'VERIFIED') {
+        // Evaluate all documents for this user to determine if mandatory KYC criteria are satisfied
+        const allUserDocs = await prisma.document.findMany({
+          where: { userId: document.userId },
+          select: { id: true, documentType: true, status: true },
+        });
+
+        const hasVerifiedPan = allUserDocs.some(
+          (d) => (d.documentType === 'PAN' && d.status === 'VERIFIED') || (d.id === params.id && document.documentType === 'PAN')
+        );
+        const hasVerifiedIdentity = allUserDocs.some(
+          (d) =>
+            ((d.documentType === 'AADHAAR' || d.documentType === 'OTHER') && d.status === 'VERIFIED') ||
+            (d.id === params.id && (document.documentType === 'AADHAAR' || document.documentType === 'OTHER'))
+        );
+
+        if (hasVerifiedPan && hasVerifiedIdentity) {
+          await prisma.customer.update({
+            where: { id: targetCustomerId },
+            data: { kycStatus: 'VERIFIED' },
+          });
+
+          await logActivity({
+            actorUserId: user.id,
+            actorRole: user.role,
+            action: 'KYC_STATUS_UPDATE',
+            entityType: 'Customer',
+            entityId: targetCustomerId,
+            details: { kycStatus: 'VERIFIED', triggeredByDocId: params.id },
+          });
+
+          if (targetUserId) {
+            await createNotification({
+              userId: targetUserId,
+              title: 'KYC Verification Approved',
+              message: 'Congratulations! Your regulatory KYC profile has been fully verified by our compliance desk.',
+              category: 'KYC',
+              linkUrl: '/onboarding',
+            });
+          }
+        }
+      }
+    }
+
     await logActivity({
       actorUserId: user.id,
       actorRole: user.role,

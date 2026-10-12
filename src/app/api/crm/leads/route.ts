@@ -5,15 +5,17 @@ import { getCurrentUser } from '@/lib/auth';
 import { logActivity } from '@/lib/audit';
 import { sanitizeApiError } from '@/lib/errors';
 import { notifyEmployee } from '@/lib/notifications';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const createLeadSchema = z.object({
-  name: z.string().min(1, 'Lead name required'),
-  phone: z.string().min(10, 'Valid phone required'),
-  email: z.string().email().optional().or(z.literal('')),
-  source: z.string().default('DIRECT'),
-  productInterest: z.string().default('GENERAL'),
-  notes: z.string().optional(),
-  assignedEmployeeId: z.string().optional(),
+  name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100),
+  phone: z.string().trim().min(10, 'Valid phone required').max(15).regex(/^[0-9+\s-]{10,15}$/, 'Invalid phone number format'),
+  email: z.string().trim().email('Invalid email address').max(100).optional().or(z.literal('')),
+  source: z.string().max(50).default('DIRECT'),
+  productInterest: z.string().max(50).default('GENERAL'),
+  notes: z.string().max(1000).optional(),
+  assignedEmployeeId: z.string().max(50).optional(),
+  website_url: z.string().max(0, 'Bot detected').optional().or(z.literal('')), // Honeypot field
 });
 
 const updateLeadSchema = z.object({
@@ -31,7 +33,7 @@ const updateLeadSchema = z.object({
       'LOST_CLOSED',
     ])
     .optional(),
-  notes: z.string().optional(),
+  notes: z.string().max(2000).optional(),
   assignedEmployeeId: z.string().optional(),
 });
 
@@ -99,10 +101,21 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const user = await getCurrentUser();
-  if (user && user.role !== 'EMPLOYEE' && user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden: Staff access required' }, { status: 403 });
+  // 1. Abuse Protection: Rate limit lead submissions by client IP (5 per minute)
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'local';
+  const rateLimit = checkRateLimit(`lead_submit:${ip}`, 5, 60000);
+  if (!rateLimit.allowed) {
+    const retryAfterSeconds = Math.ceil(rateLimit.retryAfterMs / 1000);
+    return NextResponse.json(
+      { error: 'Too many requests. Please wait a minute and try again.' },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(retryAfterSeconds) },
+      }
+    );
   }
+
+  const user = await getCurrentUser();
 
   try {
     const body = await request.json();
@@ -111,21 +124,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid lead data', details: parsed.error.flatten() }, { status: 400 });
     }
 
-    const { name, phone, email, source, productInterest, notes, assignedEmployeeId } = parsed.data;
+    const { name, phone, email, source, productInterest, notes, assignedEmployeeId, website_url } = parsed.data;
 
-    const effectiveSource = user ? (source || 'DIRECT') : 'WEBSITE';
-    const effectiveAssignedId = user
+    // Honeypot anti-bot validation
+    if (website_url && website_url.length > 0) {
+      return NextResponse.json({ error: 'Automated submission rejected' }, { status: 400 });
+    }
+
+    // Determine effective source and assignment:
+    // Only staff can explicitly set internal source or assign to specific employee
+    const isStaff = user && (user.role === 'EMPLOYEE' || user.role === 'ADMIN');
+    const effectiveSource = isStaff ? (source || 'DIRECT') : (user ? 'PORTAL_CLIENT' : 'WEBSITE');
+    const effectiveAssignedId = isStaff
       ? (assignedEmployeeId || (user.role === 'EMPLOYEE' ? user.employeeProfile?.id : null))
       : null;
 
+    const cleanPhone = phone.replace(/[^0-9+]/g, '');
+
     const lead = await prisma.lead.create({
       data: {
-        name,
-        phone,
-        email: email || null,
+        name: name.trim(),
+        phone: cleanPhone,
+        email: email ? email.toLowerCase().trim() : null,
         source: effectiveSource,
         productInterest: productInterest || 'GENERAL',
-        notes: notes || null,
+        notes: notes ? notes.trim() : null,
         assignedEmployeeId: effectiveAssignedId,
         status: 'NEW_LEAD',
       },
@@ -147,6 +170,17 @@ export async function POST(request: NextRequest) {
         message: `Lead "${lead.name}" (${lead.productInterest}) has been assigned to you.`,
         category: 'LEAD',
         linkUrl: '/employee/leads',
+      });
+    }
+
+    // Return minimal response for public/client submissions, full record for staff
+    if (!isStaff) {
+      return NextResponse.json({
+        success: true,
+        lead: {
+          id: lead.id,
+          name: lead.name,
+        },
       });
     }
 
