@@ -208,24 +208,24 @@ export default function MarketsPage() {
         </button>
       </div>
 
-      {/* Indices Row matching Screen 02 */}
+      {/* Indices Row — Honest Provider Status */}
       <div className="grid grid-cols-3 gap-2">
         <Card className="p-3 bg-[#111927] border-slate-800">
           <div className="text-[11px] font-medium text-slate-400">NIFTY 50</div>
-          <div className="text-xs sm:text-sm font-bold text-white mt-1 font-mono">24,718.60</div>
-          <div className="text-[10px] font-semibold text-emerald-400 mt-0.5">▲ +1.24%</div>
+          <div className="text-xs sm:text-sm font-bold text-slate-300 mt-1 font-mono">--</div>
+          <div className="text-[10px] font-medium text-amber-400/90 mt-0.5">Awaiting Live Feed</div>
         </Card>
 
         <Card className="p-3 bg-[#111927] border-slate-800">
           <div className="text-[11px] font-medium text-slate-400">SENSEX</div>
-          <div className="text-xs sm:text-sm font-bold text-white mt-1 font-mono">81,641.77</div>
-          <div className="text-[10px] font-semibold text-emerald-400 mt-0.5">▲ +1.18%</div>
+          <div className="text-xs sm:text-sm font-bold text-slate-300 mt-1 font-mono">--</div>
+          <div className="text-[10px] font-medium text-amber-400/90 mt-0.5">Awaiting Live Feed</div>
         </Card>
 
         <Card className="p-3 bg-[#111927] border-slate-800">
           <div className="text-[11px] font-medium text-slate-400">BANK NIFTY</div>
-          <div className="text-xs sm:text-sm font-bold text-white mt-1 font-mono">52,380.45</div>
-          <div className="text-[10px] font-semibold text-emerald-400 mt-0.5">▲ +1.32%</div>
+          <div className="text-xs sm:text-sm font-bold text-slate-300 mt-1 font-mono">--</div>
+          <div className="text-[10px] font-medium text-amber-400/90 mt-0.5">Awaiting Live Feed</div>
         </Card>
       </div>
 

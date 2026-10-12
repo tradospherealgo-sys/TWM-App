@@ -83,10 +83,14 @@ export async function GET(
       customer.assignedEmployeeId &&
       customer.assignedEmployeeId !== user.employeeProfile?.id
     ) {
-      return NextResponse.json(
-        { error: 'Forbidden: You are not authorized to access this customer record' },
-        { status: 403 }
-      );
+      const dept = (user.employeeProfile?.department || '').toLowerCase();
+      const isOperationsOrCompliance = dept.includes('operations') || dept.includes('compliance');
+      if (!isOperationsOrCompliance) {
+        return NextResponse.json(
+          { error: 'Forbidden: You are not authorized to access this customer record' },
+          { status: 403 }
+        );
+      }
     }
 
     // Fetch related activity logs for this user/customer

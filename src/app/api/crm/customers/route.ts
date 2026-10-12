@@ -22,8 +22,10 @@ export async function GET(request: NextRequest) {
 
     // Horizontal isolation: employee sees assigned customers or unassigned
     if (user.role === 'EMPLOYEE' && user.employeeProfile) {
+      const dept = (user.employeeProfile.department || '').toLowerCase();
+      const isOperationsOrCompliance = dept.includes('operations') || dept.includes('compliance');
       const viewAll = searchParams.get('all') === 'true';
-      if (!viewAll) {
+      if (!isOperationsOrCompliance || !viewAll) {
         whereClause.OR = [
           { assignedEmployeeId: user.employeeProfile.id },
           { assignedEmployeeId: null },
