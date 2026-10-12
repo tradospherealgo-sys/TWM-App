@@ -196,6 +196,55 @@ export default function AdminSignalWorkspacePage() {
     }
   }
 
+  async function handleWithdraw() {
+    const reason = window.prompt('Enter withdrawal reason (e.g. market thesis invalidated, stop-loss trigger, or compliance instruction):');
+    if (reason === null) return;
+
+    setActionLoading(true);
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/signals/${params.id}/withdraw`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage({ type: 'success', text: 'Signal withdrawn and removed from client view.' });
+        await fetchSignal();
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to withdraw signal' });
+      }
+    } catch (e: any) {
+      setMessage({ type: 'error', text: e.message || 'Error withdrawing signal' });
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleExpire() {
+    if (!window.confirm('Mark this signal as EXPIRED? It will be archived and removed from active client research.')) return;
+
+    setActionLoading(true);
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/signals/${params.id}/expire`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage({ type: 'success', text: 'Signal marked as expired.' });
+        await fetchSignal();
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to expire signal' });
+      }
+    } catch (e: any) {
+      setMessage({ type: 'error', text: e.message || 'Error expiring signal' });
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0B111E] text-slate-100">
@@ -522,13 +571,31 @@ export default function AdminSignalWorkspacePage() {
               )}
 
               {(signal.status === 'PUBLISHED' || signal.status === 'ACTIVE') && (
-                <button
-                  onClick={handleClose}
-                  disabled={actionLoading}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors"
-                >
-                  <span>Mark as Closed</span>
-                </button>
+                <>
+                  <button
+                    onClick={handleWithdraw}
+                    disabled={actionLoading}
+                    className="px-3.5 py-2 rounded-xl bg-red-950/60 hover:bg-red-900 text-red-200 text-xs font-semibold border border-red-800/80 transition-colors"
+                  >
+                    <span>Withdraw Signal</span>
+                  </button>
+
+                  <button
+                    onClick={handleExpire}
+                    disabled={actionLoading}
+                    className="px-3.5 py-2 rounded-xl bg-amber-950/60 hover:bg-amber-900 text-amber-200 text-xs font-semibold border border-amber-800/80 transition-colors"
+                  >
+                    <span>Mark Expired</span>
+                  </button>
+
+                  <button
+                    onClick={handleClose}
+                    disabled={actionLoading}
+                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors"
+                  >
+                    <span>Mark Closed</span>
+                  </button>
+                </>
               )}
             </div>
           </div>

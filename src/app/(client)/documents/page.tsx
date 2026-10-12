@@ -34,49 +34,6 @@ interface DocumentItem {
   createdAt: string;
 }
 
-const REFERENCE_DOCUMENTS: DocumentItem[] = [
-  {
-    id: 'ref-doc-pan',
-    title: 'PAN Card',
-    documentType: 'PAN',
-    fileUrl: '/api/documents/download?id=ref-doc-pan',
-    fileSize: 450 * 1024,
-    mimeType: 'application/pdf',
-    status: 'VERIFIED',
-    createdAt: '2024-10-10T10:00:00Z',
-  },
-  {
-    id: 'ref-doc-aadhaar',
-    title: 'Aadhaar Card',
-    documentType: 'AADHAAR',
-    fileUrl: '/api/documents/download?id=ref-doc-aadhaar',
-    fileSize: 620 * 1024,
-    mimeType: 'application/pdf',
-    status: 'VERIFIED',
-    createdAt: '2024-10-10T10:00:00Z',
-  },
-  {
-    id: 'ref-doc-address',
-    title: 'Address Proof',
-    documentType: 'OTHER',
-    fileUrl: '/api/documents/download?id=ref-doc-address',
-    fileSize: 520 * 1024,
-    mimeType: 'application/pdf',
-    status: 'VERIFIED',
-    createdAt: '2024-09-28T10:00:00Z',
-  },
-  {
-    id: 'ref-doc-bank',
-    title: 'Bank Statement',
-    documentType: 'BANK_STATEMENT',
-    fileUrl: '/api/documents/download?id=ref-doc-bank',
-    fileSize: 1240 * 1024,
-    mimeType: 'application/pdf',
-    status: 'VERIFIED',
-    createdAt: '2024-09-28T10:00:00Z',
-  },
-];
-
 export default function ClientDocumentsPage() {
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,15 +54,14 @@ export default function ClientDocumentsPage() {
       setLoading(true);
       const res = await fetch('/api/documents');
       const data = await res.json();
-      if (res.ok && data.documents && data.documents.length > 0) {
+      if (res.ok && data.documents) {
         setDocuments(data.documents);
       } else {
-        // Fallback to reference documents so UI is faithful to Screen 05
-        setDocuments(REFERENCE_DOCUMENTS);
+        setDocuments([]);
       }
     } catch (e) {
       console.error('Error fetching documents:', e);
-      setDocuments(REFERENCE_DOCUMENTS);
+      setDocuments([]);
     } finally {
       setLoading(false);
     }
@@ -208,54 +164,70 @@ export default function ClientDocumentsPage() {
         ))}
       </div>
 
-      {/* Documents List matching Screen 05 */}
+      {/* Documents List */}
       <div className="space-y-3">
-        {filteredDocs.map((doc) => (
-          <Card key={doc.id} className="p-4 bg-[#111927] border-slate-800 space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <span className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
-                  <FileText className="w-5 h-5" />
-                </span>
-                <div>
-                  <h3 className="font-bold text-sm text-white">{doc.title}</h3>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                      {doc.status === 'VERIFIED' ? 'Verified' : doc.status}
-                    </span>
+        {filteredDocs.length === 0 ? (
+          <Card className="p-8 text-center bg-[#111927] border-slate-800 space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto">
+              <FolderLock className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-white">No Documents in Vault</h3>
+              <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto leading-relaxed">
+                {activeTab === 'ALL'
+                  ? 'Your encrypted compliance vault is currently empty. Upload your self-attested documents (PAN, Aadhaar, Bank Statement) below for regulatory verification.'
+                  : `No ${activeTab.toLowerCase()} documents uploaded yet.`}
+              </p>
+            </div>
+          </Card>
+        ) : (
+          filteredDocs.map((doc) => (
+            <Card key={doc.id} className="p-4 bg-[#111927] border-slate-800 space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
+                    <FileText className="w-5 h-5" />
+                  </span>
+                  <div>
+                    <h3 className="font-bold text-sm text-white">{doc.title}</h3>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        {doc.status === 'VERIFIED' ? 'Verified' : doc.status}
+                      </span>
+                    </div>
                   </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] text-slate-400 hidden sm:inline">
+                    {new Date(doc.createdAt).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: '2-digit',
+                      year: 'numeric',
+                    })}
+                  </span>
+                  <a
+                    href={`/api/documents/download?id=${doc.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-9 h-9 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-emerald-400 hover:border-emerald-500/40 flex items-center justify-center transition-colors"
+                    title="Download Document"
+                  >
+                    <Download className="w-4 h-4" />
+                  </a>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <span className="text-[11px] text-slate-400 hidden sm:inline">
-                  {new Date(doc.createdAt).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: '2-digit',
-                    year: 'numeric',
-                  })}
-                </span>
-                <a
-                  href={`/api/documents/download?id=${doc.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-9 h-9 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-emerald-400 hover:border-emerald-500/40 flex items-center justify-center transition-colors"
-                  title="Download Document"
-                >
-                  <Download className="w-4 h-4" />
-                </a>
-              </div>
-            </div>
-
-            {doc.notes && (
-              <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-300">
-                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Note:</span>
-                <p className="text-[11px]">{doc.notes}</p>
-              </div>
-            )}
-          </Card>
-        ))}
+              {doc.notes && (
+                <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-300">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Note:</span>
+                  <p className="text-[11px]">{doc.notes}</p>
+                </div>
+              )}
+            </Card>
+          ))
+        )}
       </div>
 
       {/* Upload More Documents Button matching Screen 05 */}

@@ -136,6 +136,11 @@ export async function updateSignal(input: UpdateSignalInput, adminUserId: string
     },
   });
 
+  const approvalInvalidated = existing.status === 'APPROVED' || existing.status === 'PUBLISHED';
+  const effectiveReason = approvalInvalidated
+    ? `${input.changeReason || 'Content revision'} (Approval invalidated for re-review)`
+    : (input.changeReason || 'Content revision');
+
   const updated = await prisma.signal.update({
     where: { id: input.id },
     data: {
@@ -154,6 +159,12 @@ export async function updateSignal(input: UpdateSignalInput, adminUserId: string
       ...(input.validityType && { validityType: input.validityType }),
       ...(input.validUntil !== undefined && { validUntil: input.validUntil ? new Date(input.validUntil) : null }),
       ...(input.riskLevel && { riskLevel: input.riskLevel }),
+      ...(approvalInvalidated && {
+        status: 'DRAFT',
+        approvedByUserId: null,
+        publishedAt: null,
+        publishedByUserId: null,
+      }),
       version: existing.version + 1,
     },
   });
@@ -161,10 +172,10 @@ export async function updateSignal(input: UpdateSignalInput, adminUserId: string
   await logActivity({
     actorUserId: adminUserId,
     actorRole: 'ADMIN',
-    action: 'SIGNAL_UPDATE',
+    action: approvalInvalidated ? 'SIGNAL_UPDATE_INVALIDATE_APPROVAL' : 'SIGNAL_UPDATE',
     entityType: 'Signal',
     entityId: updated.id,
-    details: { version: updated.version, changeReason: input.changeReason },
+    details: { version: updated.version, changeReason: effectiveReason, approvalInvalidated },
   });
 
   return updated;
@@ -420,6 +431,64 @@ export async function closeSignal(signalId: string, adminUserId: string) {
 }
 
 // ---------------------------------------------------------------------------
+// 6b. WITHDRAW SIGNAL (Immediate removal from client availability)
+// ---------------------------------------------------------------------------
+export async function withdrawSignal(signalId: string, reason: string, adminUserId: string) {
+  const existing = await prisma.signal.findUnique({ where: { id: signalId } });
+  if (!existing) {
+    throw new Error('Signal not found');
+  }
+
+  const updated = await prisma.signal.update({
+    where: { id: signalId },
+    data: {
+      status: 'WITHDRAWN',
+      rejectionReason: reason || 'Withdrawn by editorial desk',
+      closedAt: new Date(),
+    },
+  });
+
+  await logActivity({
+    actorUserId: adminUserId,
+    actorRole: 'ADMIN',
+    action: 'SIGNAL_WITHDRAW',
+    entityType: 'Signal',
+    entityId: signalId,
+    details: { reason },
+  });
+
+  return updated;
+}
+
+// ---------------------------------------------------------------------------
+// 6c. EXPIRE SIGNAL (Marks validity past)
+// ---------------------------------------------------------------------------
+export async function expireSignal(signalId: string, adminUserId: string) {
+  const existing = await prisma.signal.findUnique({ where: { id: signalId } });
+  if (!existing) {
+    throw new Error('Signal not found');
+  }
+
+  const updated = await prisma.signal.update({
+    where: { id: signalId },
+    data: {
+      status: 'EXPIRED',
+      closedAt: new Date(),
+    },
+  });
+
+  await logActivity({
+    actorUserId: adminUserId,
+    actorRole: 'ADMIN',
+    action: 'SIGNAL_EXPIRE',
+    entityType: 'Signal',
+    entityId: signalId,
+  });
+
+  return updated;
+}
+
+// ---------------------------------------------------------------------------
 // 7. GET SIGNALS LIST (Protected with Role & Subscription Boundaries)
 // ---------------------------------------------------------------------------
 export async function getSignalsList(
@@ -442,8 +511,17 @@ export async function getSignalsList(
   }
 
   if (user.role === 'CLIENT') {
-    // Clients only see PUBLISHED or CLOSED content
-    where.status = { in: ['PUBLISHED', 'ACTIVE', 'CLOSED'] };
+    // Clients only see non-expired, active published content (never drafts, unapproved, withdrawn, or expired signals)
+    const now = new Date();
+    where.status = { in: ['PUBLISHED', 'ACTIVE'] };
+    where.AND = [
+      {
+        OR: [
+          { validUntil: null },
+          { validUntil: { gte: now } },
+        ],
+      },
+    ];
     const isSubscribed = await hasActiveSignalsSubscription(user.id);
 
     const signals = await prisma.signal.findMany({
@@ -526,8 +604,11 @@ export async function getSignalDetail(signalId: string, user: { id: string; role
   }
 
   if (user.role === 'CLIENT') {
-    if (signal.status !== 'PUBLISHED' && signal.status !== 'ACTIVE' && signal.status !== 'CLOSED') {
+    if (signal.status !== 'PUBLISHED' && signal.status !== 'ACTIVE') {
       throw new Error('Signal not available');
+    }
+    if (signal.validUntil && new Date(signal.validUntil) < new Date()) {
+      throw new Error('Signal has expired and is no longer active');
     }
 
     const isSubscribed = await hasActiveSignalsSubscription(user.id);
