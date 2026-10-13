@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getIndices, getMarketDataProviderStatus } from '@/lib/adapters/market-data';
+import { getIndicesWithLiveQuotes } from '@/lib/adapters/market-data';
 
 export async function GET() {
-  const indices = getIndices();
-  const providerStatus = getMarketDataProviderStatus();
+  const { indices, providerStatus } = await getIndicesWithLiveQuotes();
   return NextResponse.json({ indices, providerStatus });
 }

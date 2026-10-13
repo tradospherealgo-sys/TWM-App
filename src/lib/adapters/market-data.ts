@@ -129,10 +129,17 @@ export const REFERENCE_INDICES = [
   { name: 'NIFTY IT', symbol: 'NIFTYIT', exchange: 'NSE', instrumentKey: 'NSE_INDEX|Nifty IT' },
 ];
 
+export interface MarketDataProviderStatus {
+  isConfigured: boolean;
+  provider: string;
+  message: string;
+  status?: string;
+}
+
 /**
  * Synchronous status check (env fallback)
  */
-export function getMarketDataProviderStatus() {
+export function getMarketDataProviderStatus(): MarketDataProviderStatus {
   const upstoxToken = process.env.UPSTOX_ACCESS_TOKEN;
   const genericKey = process.env.MARKET_DATA_PROVIDER_API_KEY;
   const isConfigured = Boolean(
@@ -145,13 +152,14 @@ export function getMarketDataProviderStatus() {
     message: isConfigured
       ? 'Live market data feed connected.'
       : 'LIVE MARKET DATA UNAVAILABLE. Configure Upstox Access Token in Admin -> Integrations.',
+    status: isConfigured ? 'CONNECTED' : 'NOT_CONFIGURED',
   };
 }
 
 /**
  * Asynchronous status check checking both database integration config and env
  */
-export async function getMarketDataProviderStatusAsync() {
+export async function getMarketDataProviderStatusAsync(): Promise<MarketDataProviderStatus> {
   try {
     const config = await prisma.integrationConfig.findUnique({
       where: { providerKey: 'UPSTOX' },
@@ -225,6 +233,76 @@ export function getIndices(): MarketIndexInfo[] {
     percentChange: null,
     status: 'DATA_UNAVAILABLE',
   }));
+}
+
+export async function getIndicesWithLiveQuotes(): Promise<{
+  indices: MarketIndexInfo[];
+  providerStatus: { isConfigured: boolean; provider: string; message: string; status?: string };
+}> {
+  const providerStatus = await getMarketDataProviderStatusAsync();
+  const indices = getIndices();
+
+  if (!providerStatus.isConfigured || providerStatus.status !== 'CONNECTED') {
+    return { indices, providerStatus };
+  }
+
+  try {
+    let token = process.env.UPSTOX_ACCESS_TOKEN;
+    if (!token) {
+      try {
+        const config = await prisma.integrationConfig.findUnique({
+          where: { providerKey: 'UPSTOX' },
+        });
+        if (config) {
+          const secrets = decryptSecretsMap(config.encryptedSecrets);
+          token = secrets.accessToken;
+        }
+      } catch {
+        token = undefined;
+      }
+    }
+
+    if (token && token.trim().length > 0) {
+      const instrumentKeys = REFERENCE_INDICES.map((i) => i.instrumentKey).filter(Boolean);
+      const url = `https://api.upstox.com/v2/market-quote/ltp?instrument_key=${encodeURIComponent(instrumentKeys.join(','))}`;
+
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token.trim()}`,
+          Accept: 'application/json',
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.status === 'success' && data?.data) {
+          const quotes = data.data;
+          const liveIndices = indices.map((idx) => {
+            const ref = REFERENCE_INDICES.find((r) => r.symbol === idx.symbol);
+            if (!ref?.instrumentKey) return idx;
+            const quoteKey = Object.keys(quotes).find(
+              (k) => k === ref.instrumentKey || k.replace(':', '|') === ref.instrumentKey
+            );
+            const quote = quoteKey ? quotes[quoteKey] : null;
+            const ltp = quote?.last_price ?? quote?.ltp;
+            if (typeof ltp === 'number' && !isNaN(ltp)) {
+              return {
+                ...idx,
+                lastPrice: ltp,
+                status: 'LIVE' as const,
+              };
+            }
+            return idx;
+          });
+          return { indices: liveIndices, providerStatus };
+        }
+      }
+    }
+  } catch {
+    // Keep honest DATA_UNAVAILABLE fallback on error
+  }
+
+  return { indices, providerStatus };
 }
 
 /**
