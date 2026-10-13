@@ -6,7 +6,6 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { StatusBadge } from '@/components/ui/Badge';
-import { StatusBanner } from '@/components/ui/StatusBanner';
 import {
   HelpCircle,
   Plus,
@@ -20,6 +19,10 @@ import {
   ArrowLeft,
   ChevronDown,
   ChevronUp,
+  Sparkles,
+  Send,
+  Bot,
+  ShieldAlert,
 } from 'lucide-react';
 
 interface SupportTicketItem {
@@ -31,6 +34,14 @@ interface SupportTicketItem {
   status: string;
   resolutionNotes?: string | null;
   createdAt: string;
+}
+
+interface AiChatMessage {
+  id: string;
+  sender: 'user' | 'bot';
+  text: string;
+  sources?: Array<{ title: string; category: string }>;
+  isCompliant?: boolean;
 }
 
 const REFERENCE_TICKETS: SupportTicketItem[] = [
@@ -92,7 +103,7 @@ const FAQS_DATA = [
 ];
 
 export default function ClientSupportPage() {
-  const [activeTab, setActiveTab] = useState<'TICKETS' | 'FAQS'>('TICKETS');
+  const [activeTab, setActiveTab] = useState<'TICKETS' | 'FAQS' | 'AI_GUIDE'>('TICKETS');
   const [tickets, setTickets] = useState<SupportTicketItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
@@ -102,6 +113,17 @@ export default function ClientSupportPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(0);
+
+  // Client AI Guidance Chat State
+  const [aiQuery, setAiQuery] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiMessages, setAiMessages] = useState<AiChatMessage[]>([
+    {
+      id: 'welcome',
+      sender: 'bot',
+      text: 'Hello! I am your AI Wealth Guide at Tradosphere. I can help answer questions about KYC document requirements, opening your SMC Demat account, setting up Mutual Fund SIPs, and tracking applications.\n\nNotice: I provide educational and procedural guidance only, and cannot offer stock tips or guaranteed investment returns.',
+    },
+  ]);
 
   useEffect(() => {
     fetchTickets();
@@ -155,6 +177,55 @@ export default function ClientSupportPage() {
     }
   }
 
+  async function handleAskAi(promptText?: string) {
+    const q = promptText || aiQuery;
+    if (!q.trim() || aiLoading) return;
+
+    const userMsg: AiChatMessage = {
+      id: Math.random().toString(36).substring(7),
+      sender: 'user',
+      text: q.trim(),
+    };
+
+    setAiMessages((prev) => [...prev, userMsg]);
+    if (!promptText) setAiQuery('');
+    setAiLoading(true);
+
+    try {
+      const res = await fetch('/api/copilot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: q.trim() }),
+      });
+      const data = await res.json();
+
+      if (data.response) {
+        const botMsg: AiChatMessage = {
+          id: Math.random().toString(36).substring(7),
+          sender: 'bot',
+          text: data.response.answer,
+          sources: data.response.sources,
+          isCompliant: data.response.isCompliant,
+        };
+        setAiMessages((prev) => [...prev, botMsg]);
+      } else {
+        throw new Error(data.error || 'Failed to obtain answer');
+      }
+    } catch (err: any) {
+      setAiMessages((prev) => [
+        ...prev,
+        {
+          id: Math.random().toString(36).substring(7),
+          sender: 'bot',
+          text: `Service notice: ${err.message || 'Unable to connect to assistant'}. Please try again or create a support ticket.`,
+          isCompliant: false,
+        },
+      ]);
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* Header with back arrow matching Screen 06 */}
@@ -167,9 +238,9 @@ export default function ClientSupportPage() {
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">Support</h1>
+            <h1 className="text-xl font-bold text-white tracking-tight">Support &amp; Guidance</h1>
             <p className="text-xs text-slate-400 mt-0.5">
-              Get help when you need it.
+              Service requests, FAQs, and AI wealth onboarding guidance
             </p>
           </div>
         </div>
@@ -191,8 +262,8 @@ export default function ClientSupportPage() {
         </div>
       )}
 
-      {/* Tabs matching Screen 06: My Tickets, FAQs */}
-      <div className="grid grid-cols-2 gap-1 p-1 bg-slate-900 rounded-xl border border-slate-800 text-xs">
+      {/* Tabs: My Tickets, FAQs, AI Assistant */}
+      <div className="grid grid-cols-3 gap-1 p-1 bg-slate-900 rounded-xl border border-slate-800 text-xs">
         <button
           onClick={() => setActiveTab('TICKETS')}
           className={`py-2 rounded-lg font-semibold transition-all ${
@@ -212,6 +283,17 @@ export default function ClientSupportPage() {
           }`}
         >
           FAQs
+        </button>
+        <button
+          onClick={() => setActiveTab('AI_GUIDE')}
+          className={`py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-1 ${
+            activeTab === 'AI_GUIDE'
+              ? 'bg-emerald-600 text-white shadow-sm'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+          <span>AI Guide</span>
         </button>
       </div>
 
@@ -294,6 +376,117 @@ export default function ClientSupportPage() {
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {/* TAB 3: CLIENT AI WEALTH ASSISTANT */}
+      {activeTab === 'AI_GUIDE' && (
+        <div className="space-y-3">
+          {/* Quick Prompts */}
+          <div className="flex gap-1.5 overflow-x-auto pb-1 text-[11px]">
+            <button
+              onClick={() => handleAskAi('What documents are required for KYC?')}
+              className="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-emerald-500/50 whitespace-nowrap transition-colors"
+            >
+              📄 KYC Documents Checklist
+            </button>
+            <button
+              onClick={() => handleAskAi('How do I open an SMC Demat account?')}
+              className="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-emerald-500/50 whitespace-nowrap transition-colors"
+            >
+              🏛️ Open SMC Demat
+            </button>
+            <button
+              onClick={() => handleAskAi('How does an SIP mandate work?')}
+              className="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-emerald-500/50 whitespace-nowrap transition-colors"
+            >
+              📈 SIP Mandate Guide
+            </button>
+            <button
+              onClick={() => handleAskAi('How do I check my application status?')}
+              className="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-emerald-500/50 whitespace-nowrap transition-colors"
+            >
+              🔍 Application Status
+            </button>
+          </div>
+
+          {/* Conversation Stream */}
+          <div className="space-y-3 min-h-[260px] max-h-[420px] overflow-y-auto p-1">
+            {aiMessages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex gap-2.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                {msg.sender === 'bot' && (
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                    <Bot className="w-4 h-4" />
+                  </div>
+                )}
+                <div
+                  className={`max-w-[85%] rounded-2xl p-3 text-xs leading-relaxed ${
+                    msg.sender === 'user'
+                      ? 'bg-emerald-600 text-white rounded-br-none'
+                      : 'bg-[#111927] border border-slate-800 text-slate-200 rounded-bl-none'
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap">{msg.text}</p>
+                  {msg.sources && msg.sources.length > 0 && (
+                    <div className="mt-2 pt-1.5 border-t border-slate-800/80 flex flex-wrap gap-1">
+                      {msg.sources.map((s, idx) => (
+                        <span
+                          key={idx}
+                          className="px-1.5 py-0.5 rounded text-[9px] bg-slate-800 text-slate-400"
+                        >
+                          Ref: {s.title}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {aiLoading && (
+              <div className="flex gap-2.5 justify-start">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                  <Bot className="w-4 h-4 animate-spin" />
+                </div>
+                <div className="p-3 rounded-2xl bg-[#111927] border border-slate-800 text-xs text-slate-400">
+                  Thinking &amp; verifying approved SOPs...
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Input Box */}
+          <div className="flex gap-2 pt-2 border-t border-slate-800">
+            <Input
+              placeholder="Ask about onboarding, KYC, SIP, or services..."
+              value={aiQuery}
+              onChange={(e) => setAiQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleAskAi();
+                }
+              }}
+              className="text-xs"
+            />
+            <Button
+              variant="primary"
+              size="md"
+              disabled={aiLoading || !aiQuery.trim()}
+              onClick={() => handleAskAi()}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white shrink-0 px-3.5"
+            >
+              <Send className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+
+          {/* Regulatory Note */}
+          <p className="text-[10px] text-slate-500 text-center leading-normal">
+            Tradosphere Wealth Management is an Authorised Person of SMC Global Securities Ltd. Guidance is educational and procedural only. Zero individual stock recommendations or guaranteed returns.
+          </p>
         </div>
       )}
 

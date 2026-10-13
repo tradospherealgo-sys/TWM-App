@@ -30,7 +30,7 @@ export default async function ClientLayout({
 
   return (
     <div className="min-h-screen bg-[#0B111E] text-slate-100 flex flex-col">
-      <ClientHeader userName={user.name} unreadNotificationsCount={unreadCount} />
+      <ClientHeader userName={user.name} unreadNotificationsCount={unreadCount} userRole={user.role} />
       <main className="flex-1 max-w-md md:max-w-lg lg:max-w-xl w-full mx-auto px-4 py-5 pb-24">
         {children}
       </main>

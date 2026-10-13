@@ -20,6 +20,11 @@ const createLeadSchema = z.object({
 
 const updateLeadSchema = z.object({
   id: z.string(),
+  name: z.string().trim().min(2).max(100).optional(),
+  phone: z.string().trim().min(10).max(15).optional(),
+  email: z.string().trim().email().max(100).optional().or(z.literal('')),
+  productInterest: z.string().max(50).optional(),
+  source: z.string().max(50).optional(),
   status: z
     .enum([
       'NEW_LEAD',
@@ -34,7 +39,8 @@ const updateLeadSchema = z.object({
     ])
     .optional(),
   notes: z.string().max(2000).optional(),
-  assignedEmployeeId: z.string().optional(),
+  lostReason: z.string().max(500).optional(),
+  assignedEmployeeId: z.string().nullable().optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -50,6 +56,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const search = searchParams.get('search');
+    const source = searchParams.get('source');
+    const productInterest = searchParams.get('productInterest');
+    const employeeId = searchParams.get('employeeId');
+    const unassigned = searchParams.get('unassigned') === 'true';
 
     const whereClause: Record<string, unknown> = {};
 
@@ -62,10 +72,22 @@ export async function GET(request: NextRequest) {
           { assignedEmployeeId: null },
         ];
       }
+    } else if (user.role === 'ADMIN') {
+      if (unassigned) {
+        whereClause.assignedEmployeeId = null;
+      } else if (employeeId) {
+        whereClause.assignedEmployeeId = employeeId;
+      }
     }
 
     if (status) {
       whereClause.status = status;
+    }
+    if (source) {
+      whereClause.source = source;
+    }
+    if (productInterest) {
+      whereClause.productInterest = productInterest;
     }
 
     if (search) {
@@ -206,7 +228,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid update data', details: parsed.error.flatten() }, { status: 400 });
     }
 
-    const { id, status, notes, assignedEmployeeId } = parsed.data;
+    const { id, name, phone, email, productInterest, source, status, notes, lostReason, assignedEmployeeId } = parsed.data;
 
     const existing = await prisma.lead.findUnique({ where: { id } });
     if (!existing) {
@@ -241,11 +263,23 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    let notesContent: string | undefined = undefined;
+    if (lostReason) {
+      notesContent = `${existing.notes || ''}\n[${new Date().toISOString()}] LOST REASON: ${lostReason}${notes ? ' - ' + notes : ''}`.trim();
+    } else if (notes) {
+      notesContent = `${existing.notes || ''}\n[${new Date().toISOString()}] ${notes}`.trim();
+    }
+
     const updated = await prisma.lead.update({
       where: { id },
       data: {
+        ...(name && { name: name.trim() }),
+        ...(phone && { phone: phone.replace(/[^0-9+]/g, '') }),
+        ...(email !== undefined && { email: email ? email.toLowerCase().trim() : null }),
+        ...(productInterest && { productInterest }),
+        ...(source && { source }),
         ...(status && { status }),
-        ...(notes && { notes: `${existing.notes || ''}\n[${new Date().toISOString()}] ${notes}` }),
+        ...(notesContent !== undefined && { notes: notesContent }),
         ...(assignedEmployeeId !== undefined && { assignedEmployeeId }),
       },
     });

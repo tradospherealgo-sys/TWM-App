@@ -289,14 +289,32 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    if (targetEmployeeId && targetEmployeeId !== user.employeeProfile?.id) {
-      await notifyEmployee({
-        employeeId: targetEmployeeId,
-        title: `Application Assigned: #${application.applicationNumber}`,
-        message: `Application for ${productCategory} has been assigned to your desk.`,
-        category: 'APPLICATION',
-        linkUrl: '/employee/applications',
-      });
+    if (targetEmployeeId) {
+      try {
+        await prisma.task.create({
+          data: {
+            title: `Process Application: #${application.applicationNumber}`,
+            description: `New application submitted for ${productCategory} (${productCode}). Review documents, verify client eligibility, and advance workflow status.`,
+            customerId: targetCustomerId,
+            assignedEmployeeId: targetEmployeeId,
+            priority: 'HIGH',
+            status: 'PENDING',
+            dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 48h SLA
+          },
+        });
+      } catch (taskErr) {
+        console.warn('Could not auto-create application review task:', taskErr);
+      }
+
+      if (targetEmployeeId !== user.employeeProfile?.id) {
+        await notifyEmployee({
+          employeeId: targetEmployeeId,
+          title: `Application Assigned: #${application.applicationNumber}`,
+          message: `Application for ${productCategory} has been assigned to your desk.`,
+          category: 'APPLICATION',
+          linkUrl: '/employee/applications',
+        });
+      }
     }
 
     return NextResponse.json({ success: true, application }, { status: 201 });

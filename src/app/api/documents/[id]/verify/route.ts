@@ -9,8 +9,8 @@ import { createNotification } from '@/lib/notifications';
 
 const verifySchema = z
   .object({
-    status: z.enum(['VERIFIED', 'REJECTED']).optional(),
-    verificationStatus: z.enum(['VERIFIED', 'REJECTED']).optional(),
+    status: z.enum(['VERIFIED', 'REJECTED', 'MORE_INFO_REQUIRED']).optional(),
+    verificationStatus: z.enum(['VERIFIED', 'REJECTED', 'MORE_INFO_REQUIRED']).optional(),
     notes: z.string().optional(),
   })
   .refine((data) => data.status || data.verificationStatus, {
@@ -85,12 +85,42 @@ export async function POST(
           category: 'KYC',
           linkUrl: '/documents',
         });
+      } else if (status === 'MORE_INFO_REQUIRED') {
+        await createNotification({
+          userId: targetUserId,
+          title: 'Additional Document Information Required',
+          message: `Your document "${document.title}" (${document.documentType}) requires additional clarification: ${notes || 'Please provide updated documentation.'}`,
+          category: 'KYC',
+          linkUrl: '/documents',
+        });
       }
     }
 
     // Synchronize Customer KYC status based on verification outcome
     const targetCustomerId = document.customerId || document.customer?.id;
     if (targetCustomerId) {
+      // Auto-complete or close the staff review task for this document
+      try {
+        const pendingTasks = await prisma.task.findMany({
+          where: {
+            customerId: targetCustomerId,
+            status: { in: ['PENDING', 'IN_PROGRESS'] },
+            title: { contains: document.documentType },
+          },
+        });
+        for (const t of pendingTasks) {
+          await prisma.task.update({
+            where: { id: t.id },
+            data: {
+              status: 'COMPLETED',
+              completedAt: new Date(),
+            },
+          });
+        }
+      } catch (taskErr) {
+        console.warn('Could not auto-complete document task:', taskErr);
+      }
+
       if (status === 'REJECTED') {
         await prisma.customer.update({
           where: { id: targetCustomerId },

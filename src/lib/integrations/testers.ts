@@ -275,6 +275,9 @@ export async function testAIProviderConnection(
 
     if (provider === 'google') {
       testUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey.trim())}`;
+    } else if (provider === 'groq') {
+      testUrl = 'https://api.groq.com/openai/v1/models';
+      headers = { Authorization: `Bearer ${apiKey.trim()}` };
     } else if (provider === 'openai') {
       testUrl = 'https://api.openai.com/v1/models';
       headers = { Authorization: `Bearer ${apiKey.trim()}` };

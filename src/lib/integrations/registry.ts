@@ -197,6 +197,7 @@ export const INTEGRATION_REGISTRY: Record<string, IntegrationMetadata> = {
         required: true,
         options: [
           { label: 'Google Gemini (Recommended)', value: 'google' },
+          { label: 'Groq Cloud (Llama / Mixtral)', value: 'groq' },
           { label: 'OpenAI', value: 'openai' },
           { label: 'Anthropic Claude', value: 'anthropic' },
           { label: 'Custom OpenAI-Compatible Endpoint', value: 'custom' },

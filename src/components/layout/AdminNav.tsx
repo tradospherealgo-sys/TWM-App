@@ -16,6 +16,7 @@ import {
   LogOut,
   Activity,
   ExternalLink,
+  CheckSquare,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
@@ -35,6 +36,7 @@ export function AdminNav({ adminName = 'Administrator' }: { adminName?: string }
     { label: 'Overview', href: '/admin', icon: LayoutDashboard },
     { label: 'Users & Roles', href: '/admin/users', icon: Users },
     { label: 'Employees', href: '/admin/employees', icon: Briefcase },
+    { label: 'Central Tasks', href: '/admin/tasks', icon: CheckSquare },
     { label: 'CRM & Pipeline', href: '/admin/crm', icon: Layers },
     { label: 'Products', href: '/admin/products', icon: Layers },
     { label: 'Signals', href: '/admin/signals', icon: Activity },
@@ -134,6 +136,20 @@ export function AdminNav({ adminName = 'Administrator' }: { adminName?: string }
             </Link>
           );
         })}
+        <Link
+          href="/home"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-md whitespace-nowrap text-xs font-medium text-slate-400 hover:text-white"
+        >
+          <ExternalLink className="w-3 h-3 text-slate-400" />
+          <span>Client View</span>
+        </Link>
+        <Link
+          href="/employee"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-md whitespace-nowrap text-xs font-medium text-slate-400 hover:text-white"
+        >
+          <ExternalLink className="w-3 h-3 text-slate-400" />
+          <span>Staff Desk</span>
+        </Link>
       </div>
     </header>
   );

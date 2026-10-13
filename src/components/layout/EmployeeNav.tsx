@@ -14,6 +14,7 @@ import {
   ClipboardList,
   LogOut,
   MessageSquare,
+  ExternalLink,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
@@ -80,6 +81,15 @@ export function EmployeeNav({ employeeName = 'Employee' }: { employeeName?: stri
 
         {/* User profile, Notifications & Logout */}
         <div className="flex items-center gap-2.5">
+          <div className="hidden sm:flex items-center gap-1.5 mr-1 border-r border-slate-800 pr-2.5">
+            <Link
+              href="/home"
+              className="text-[11px] px-2 py-1 rounded-md bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center gap-1 transition-colors border border-slate-700/60"
+            >
+              <span>Client View</span>
+              <ExternalLink className="w-2.5 h-2.5 text-slate-400" />
+            </Link>
+          </div>
           <NotificationCenter />
           <div className="text-right hidden sm:block">
             <div className="text-xs font-semibold text-slate-200">{employeeName}</div>
@@ -115,6 +125,13 @@ export function EmployeeNav({ employeeName = 'Employee' }: { employeeName?: stri
             </Link>
           );
         })}
+        <Link
+          href="/home"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-md whitespace-nowrap text-xs font-medium text-slate-400 hover:text-white"
+        >
+          <ExternalLink className="w-3 h-3 text-slate-400" />
+          <span>Client View</span>
+        </Link>
       </div>
     </header>
   );
