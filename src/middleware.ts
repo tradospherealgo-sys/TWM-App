@@ -57,14 +57,19 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Authenticated and public handling for /login or /register
-  if (pathname === '/login' || pathname === '/register') {
+  // Authenticated and public handling for auth entry pages
+  if (
+    pathname === '/login' ||
+    pathname === '/register' ||
+    pathname === '/forgot-password' ||
+    pathname === '/reset-password'
+  ) {
     const hasRedirectQuery = request.nextUrl.searchParams.has('redirect');
     const hasReasonQuery = request.nextUrl.searchParams.has('reason');
     const hasErrorQuery = request.nextUrl.searchParams.has('error') || request.nextUrl.searchParams.has('auth_error');
     const hasLogoutQuery = request.nextUrl.searchParams.has('logout') || request.nextUrl.searchParams.has('clear');
 
-    // If visiting /login or /register with redirect, reason, error, or logout parameters,
+    // If visiting with redirect, reason, error, or logout parameters,
     // downstream server layouts or the user actively routed here to challenge or re-authenticate.
     // NEVER bounce them back to protected dashboards: doing so causes an infinite 307 redirect loop.
     // Instead, delete any stale/invalid session cookie and render the page.
@@ -79,8 +84,8 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
-    // Authenticated users visiting clean /login or /register without params
-    if (user) {
+    // Authenticated users visiting clean /login or /register (allow forgot/reset password anytime)
+    if (user && (pathname === '/login' || pathname === '/register')) {
       // Loop protection: check redirect bounce counter
       const bounceCount = parseInt(request.cookies.get('twm_nav_bounce')?.value || '0', 10);
       if (bounceCount >= 2) {
@@ -115,6 +120,8 @@ export async function middleware(request: NextRequest) {
     pathname === '/api/auth/login' ||
     pathname === '/api/auth/register' ||
     pathname === '/api/auth/logout' ||
+    pathname === '/api/auth/forgot-password' ||
+    pathname === '/api/auth/reset-password' ||
     pathname.startsWith('/api/market') ||
     pathname === '/api/integrations/status' ||
     (pathname === '/api/crm/leads' && request.method === 'POST');
@@ -138,6 +145,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/applications') ||
     pathname.startsWith('/documents') ||
     pathname.startsWith('/support') ||
+    pathname.startsWith('/settings') ||
     pathname.startsWith('/account');
 
   // If not logged in and accessing protected routes

@@ -67,9 +67,9 @@ export function ClientHeader({
           {/* User profile / Logout */}
           <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
             <Link
-              href="/account"
+              href="/settings"
               className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-xs font-bold hover:scale-105 transition-transform"
-              title="Account & Profile"
+              title="Settings & Profile"
             >
               {userName
                 .split(' ')

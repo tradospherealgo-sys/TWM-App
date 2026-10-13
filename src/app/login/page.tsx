@@ -215,12 +215,12 @@ function LoginForm() {
 
               <div className="flex items-center justify-between text-[11px] text-slate-400">
                 <span>Forgot password?</span>
-                <a
-                  href="mailto:admin@tradosphere.in?subject=Password%20Reset%20Request"
-                  className="text-blue-400 hover:text-blue-300 font-medium underline"
+                <Link
+                  href="/forgot-password"
+                  className="text-blue-400 hover:text-blue-300 font-medium underline transition-colors"
                 >
-                  Contact Operations Desk
-                </a>
+                  Reset password
+                </Link>
               </div>
 
               <Button type="submit" variant="primary" size="lg" className="w-full mt-2" isLoading={isLoading}>

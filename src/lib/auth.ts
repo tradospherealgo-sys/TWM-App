@@ -61,6 +61,52 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
   }
 }
 
+export interface PasswordResetPayload {
+  userId: string;
+  email: string;
+  purpose: 'password_reset';
+  pwdPrefix: string;
+}
+
+/**
+ * Sign a secure short-lived password reset token (15-minute expiry)
+ * Bound cryptographically to the user's current password hash prefix
+ */
+export async function createPasswordResetToken(user: {
+  id: string;
+  email: string;
+  passwordHash: string;
+}): Promise<string> {
+  const key = getJwtSecret();
+  const pwdPrefix = user.passwordHash.slice(0, 12);
+  return await new SignJWT({
+    userId: user.id,
+    email: user.email.toLowerCase(),
+    purpose: 'password_reset',
+    pwdPrefix,
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('15m')
+    .sign(key);
+}
+
+/**
+ * Verify a password reset token
+ */
+export async function verifyPasswordResetToken(token: string): Promise<PasswordResetPayload | null> {
+  try {
+    const key = getJwtSecret();
+    const { payload } = await jwtVerify(token, key, {
+      algorithms: ['HS256'],
+    });
+    if (payload.purpose !== 'password_reset') return null;
+    return payload as unknown as PasswordResetPayload;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Hash password securely with bcrypt
  */

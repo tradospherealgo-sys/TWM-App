@@ -74,7 +74,7 @@ export async function getSMCIntegrationStatusAsync(): Promise<SMCIntegrationStat
           ? (apiKey
               ? 'SMC Global API gateway connected.'
               : 'SMC Authorised Person gateway active. Direct API integration requires provider credentials/documentation.')
-          : 'SMC Global API credentials are not yet configured in Admin -> Integrations.',
+          : 'SMC Global API credentials are not yet configured. Demat operations and trading route via SMC official portals.',
       };
     }
   } catch (e) {

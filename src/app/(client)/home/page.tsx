@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { getClientOnboardingDetails } from '@/lib/onboarding';
 import { getSMCOnboardingDetailsAsync } from '@/lib/adapters/smc';
-import { getIndices } from '@/lib/adapters/market-data';
+import { getIndicesWithLiveQuotes } from '@/lib/adapters/market-data';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { StatusBadge } from '@/components/ui/Badge';
@@ -22,6 +22,7 @@ import {
   ExternalLink,
   FileText,
   UserCheck,
+  Radio,
 } from 'lucide-react';
 
 export default async function ClientHomePage() {
@@ -33,7 +34,7 @@ export default async function ClientHomePage() {
     currentHour < 12 ? 'Good Morning' : currentHour < 17 ? 'Good Afternoon' : 'Good Evening';
 
   const smcDetails = await getSMCOnboardingDetailsAsync(user.phone || undefined, user.email || undefined);
-  const indices = getIndices();
+  const { indices } = await getIndicesWithLiveQuotes();
   const onboardingDetails = user.role === 'CLIENT' ? await getClientOnboardingDetails(user.id) : null;
 
   // Safe fetch for customer's real applications from database
@@ -65,6 +66,15 @@ export default async function ClientHomePage() {
     notifications = [];
   }
 
+  const displayIndices =
+    indices && indices.length > 0
+      ? indices
+      : [
+          { name: 'NIFTY 50', symbol: 'NIFTY50', lastPrice: null, status: 'DATA_UNAVAILABLE' as const },
+          { name: 'SENSEX', symbol: 'SENSEX', lastPrice: null, status: 'DATA_UNAVAILABLE' as const },
+          { name: 'BANK NIFTY', symbol: 'BANKNIFTY', lastPrice: null, status: 'DATA_UNAVAILABLE' as const },
+        ];
+
   return (
     <div className="space-y-5">
       {/* 1. Header Greeting & Welcome matching reference Screen 01 */}
@@ -83,7 +93,45 @@ export default async function ClientHomePage() {
         </div>
       </div>
 
-      {/* 2. Total Portfolio Value Card — Honest Unlinked / Awaiting Account State */}
+      {/* 2. Market Overview immediately after Greeting and before Account Balance */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+              Market Overview
+            </h2>
+            <span className="text-[10px] text-slate-500 font-mono">
+              • {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} IST
+            </span>
+          </div>
+          <Link href="/markets" className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-0.5">
+            View All <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          {displayIndices.slice(0, 3).map((idx) => {
+            const isLive = idx.status === 'LIVE' && typeof idx.lastPrice === 'number';
+            return (
+              <Card key={idx.symbol} className="p-3 bg-[#111927] border-slate-800">
+                <div className="text-[11px] font-medium text-slate-400 truncate">{idx.name}</div>
+                <div className="text-xs sm:text-sm font-bold text-slate-100 mt-1 font-mono">
+                  {isLive ? `₹ ${idx.lastPrice?.toLocaleString('en-IN')}` : '--'}
+                </div>
+                <div
+                  className={`text-[10px] font-medium mt-0.5 ${
+                    isLive ? 'text-emerald-400' : 'text-amber-400/90'
+                  }`}
+                >
+                  {isLive ? 'Live Feed' : 'Awaiting Live Feed'}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 3. Total Portfolio Value Card (Account Balance) */}
       <Card className="p-4 sm:p-5 bg-gradient-to-br from-[#101b2b] via-[#0d1624] to-[#09101a] border-slate-800 shadow-lg relative overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
           <div>
@@ -113,7 +161,7 @@ export default async function ClientHomePage() {
         </div>
       </Card>
 
-      {/* 3. 4-Pill Services Quick Grid matching reference Screen 01 */}
+      {/* 4. 4-Pill Services Quick Grid matching reference Screen 01 */}
       <div className="grid grid-cols-4 gap-2">
         <Link
           href="/invest"
@@ -156,7 +204,7 @@ export default async function ClientHomePage() {
         </Link>
       </div>
 
-      {/* 4. Explore New Opportunities Banner matching reference Screen 01 */}
+      {/* 5. Explore New Opportunities Banner matching reference Screen 01 */}
       <Link href="/invest">
         <Card className="p-4 bg-gradient-to-r from-[#10202e] via-[#111c2a] to-[#0c1824] border-emerald-900/40 hover:border-emerald-600/50 transition-all flex items-center justify-between gap-3 group">
           <div className="flex items-center gap-3">
@@ -178,37 +226,30 @@ export default async function ClientHomePage() {
         </Card>
       </Link>
 
-      {/* 5. Market Overview matching reference Screen 01 */}
-      <div className="space-y-2.5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            Market Overview
-          </h2>
-          <Link href="/markets" className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-0.5">
-            View All
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2">
-          <Card className="p-3 bg-[#111927] border-slate-800">
-            <div className="text-[11px] font-medium text-slate-400">NIFTY 50</div>
-            <div className="text-xs sm:text-sm font-bold text-slate-300 mt-1 font-mono">--</div>
-            <div className="text-[10px] font-medium text-amber-400/90 mt-0.5">Awaiting Live Feed</div>
-          </Card>
-
-          <Card className="p-3 bg-[#111927] border-slate-800">
-            <div className="text-[11px] font-medium text-slate-400">SENSEX</div>
-            <div className="text-xs sm:text-sm font-bold text-slate-300 mt-1 font-mono">--</div>
-            <div className="text-[10px] font-medium text-amber-400/90 mt-0.5">Awaiting Live Feed</div>
-          </Card>
-
-          <Card className="p-3 bg-[#111927] border-slate-800">
-            <div className="text-[11px] font-medium text-slate-400">USD/INR</div>
-            <div className="text-xs sm:text-sm font-bold text-slate-300 mt-1 font-mono">--</div>
-            <div className="text-[10px] font-medium text-amber-400/90 mt-0.5">Awaiting Live Feed</div>
-          </Card>
-        </div>
-      </div>
+      {/* Signal Desk Intelligence Card */}
+      <Link href="/signals">
+        <Card className="p-4 bg-gradient-to-r from-[#111c2e] via-[#0f2130] to-[#0c1824] border-emerald-900/50 hover:border-emerald-500/50 transition-all flex items-center justify-between gap-3 group">
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center shrink-0">
+              <Radio className="w-5 h-5" />
+            </span>
+            <div>
+              <div className="text-sm font-bold text-white group-hover:text-emerald-300 transition-colors flex items-center gap-2">
+                Market Intelligence &amp; Signal Desk
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800">
+                  Live
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Explore compliance-verified research signals and 6-agent AI reviews.
+              </p>
+            </div>
+          </div>
+          <span className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 group-hover:bg-emerald-500 group-hover:text-black transition-all">
+            <ArrowRight className="w-4 h-4" />
+          </span>
+        </Card>
+      </Link>
 
       {/* 6. Onboarding Progress Card if not completed */}
       {onboardingDetails && onboardingDetails.stage !== 'COMPLETED' && (

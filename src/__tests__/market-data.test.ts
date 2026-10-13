@@ -202,4 +202,92 @@ describe('Market Data & SMC Integration Adapters', () => {
       expect(res.message).toContain('Unable to reach Upstox API gateway');
     });
   });
+
+  describe('Live Stock Quotes and Chart Candles Adapter', () => {
+    it('should parse real Upstox quote response into StockQuote structure without fabricating prices', async () => {
+      process.env.UPSTOX_ACCESS_TOKEN = 'test_token_quote_123';
+
+      vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: any) => {
+        expect(String(url)).toContain('market-quote/quotes');
+        return new Response(
+          JSON.stringify({
+            status: 'success',
+            data: {
+              'NSE_EQ:INE002A01018': {
+                ohlc: { open: 2950.0, high: 2990.0, low: 2940.0, close: 2975.0 },
+                last_price: 2980.5,
+                net_change: 5.5,
+                volume: 5432100,
+              },
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+      });
+
+      const { getStockQuoteAsync } = await import('../lib/adapters/market-data');
+      const quote = await getStockQuoteAsync('RELIANCE');
+
+      expect(quote).not.toBeNull();
+      expect(quote?.status).toBe('LIVE');
+      expect(quote?.lastPrice).toBe(2980.5);
+      expect(quote?.open).toBe(2950.0);
+      expect(quote?.volume).toBe(5432100);
+
+      delete process.env.UPSTOX_ACCESS_TOKEN;
+    });
+
+    it('should return honest DATA_UNAVAILABLE fallback for stock quotes when token is unconfigured', async () => {
+      delete process.env.UPSTOX_ACCESS_TOKEN;
+
+      const { getStockQuoteAsync } = await import('../lib/adapters/market-data');
+      const quote = await getStockQuoteAsync('RELIANCE');
+
+      expect(quote).not.toBeNull();
+      expect(quote?.status).toBe('DATA_UNAVAILABLE');
+      expect(quote?.lastPrice).toBeNull();
+      expect(quote?.statusMessage).toContain('temporarily offline');
+    });
+
+    it('should parse real Upstox intraday candles into CandlePoint structure', async () => {
+      process.env.UPSTOX_ACCESS_TOKEN = 'test_token_candles_123';
+
+      vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: any) => {
+        expect(String(url)).toContain('historical-candle');
+        return new Response(
+          JSON.stringify({
+            status: 'success',
+            data: {
+              candles: [
+                ['2026-10-13T15:30:00+05:30', 2970, 2985, 2965, 2980, 100000, 0],
+                ['2026-10-13T15:00:00+05:30', 2960, 2975, 2955, 2970, 85000, 0],
+              ],
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+      });
+
+      const { getChartData } = await import('../lib/adapters/market-data');
+      const chart = await getChartData('RELIANCE', '1D');
+
+      expect(chart.status).toBe('LIVE');
+      expect(chart.candles.length).toBe(2);
+      expect(chart.candles[0].open).toBe(2960); // Chronological order (reversed from Upstox)
+      expect(chart.candles[1].close).toBe(2980);
+
+      delete process.env.UPSTOX_ACCESS_TOKEN;
+    });
+
+    it('should return honest DATA_UNAVAILABLE state for charts when token is missing without fake points', async () => {
+      delete process.env.UPSTOX_ACCESS_TOKEN;
+
+      const { getChartData } = await import('../lib/adapters/market-data');
+      const chart = await getChartData('RELIANCE', '1D');
+
+      expect(chart.status).toBe('DATA_UNAVAILABLE');
+      expect(chart.candles).toEqual([]);
+      expect(chart.statusMessage).toContain('temporarily offline');
+    });
+  });
 });
