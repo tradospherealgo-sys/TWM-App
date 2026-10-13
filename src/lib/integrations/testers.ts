@@ -125,15 +125,18 @@ export async function testUpstoxConnection(
     return {
       success: false,
       status: 'NOT_CONFIGURED',
-      message: 'Upstox Access Token is missing. Provide daily session access token in Integrations.',
+      message: 'Upstox Access Token is missing. Provide an Analytics Token or daily access token in Integrations.',
       latencyMs: 0,
       error: 'Missing accessToken',
     };
   }
 
+  const instrumentKey = 'NSE_INDEX|Nifty 50';
+  const cleanBase = baseUrl.replace(/\/$/, '');
+  const ltpUrl = `${cleanBase}/market-quote/ltp?instrument_key=${encodeURIComponent(instrumentKey)}`;
+
   try {
-    const profileUrl = `${baseUrl.replace(/\/$/, '')}/user/profile`;
-    const res = await fetchWithTimeout(profileUrl, {
+    const res = await fetchWithTimeout(ltpUrl, {
       headers: {
         Authorization: `Bearer ${accessToken.trim()}`,
         Accept: 'application/json',
@@ -143,25 +146,101 @@ export async function testUpstoxConnection(
     const latencyMs = Date.now() - start;
 
     if (res.status === 200) {
-      const data = await res.json();
-      return {
-        success: true,
-        status: 'CONNECTED',
-        message: 'Upstox API v2 connection verified. Live tick data feed is active.',
-        latencyMs,
-        details: {
-          clientName: data?.data?.user_name || 'Active Account',
-          broker: 'Upstox',
-          status: 'Authenticated',
-        },
-      };
-    } else if (res.status === 401 || res.status === 403) {
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch {
+        return {
+          success: false,
+          status: 'CONNECTION_FAILED',
+          message: 'Upstox API returned a non-JSON response payload.',
+          latencyMs,
+          error: 'Failed to parse JSON response from Upstox market data feed',
+        };
+      }
+
+      const quotes = data?.data || {};
+      const quoteKeys = Object.keys(quotes);
+
+      if (data?.status === 'success' && quoteKeys.length > 0) {
+        const firstQuote = quotes[quoteKeys[0]];
+        const lastPrice = firstQuote?.last_price ?? firstQuote?.ltp ?? null;
+
+        return {
+          success: true,
+          status: 'CONNECTED',
+          message: 'Upstox API v2 market data connection verified. Live LTP feed is active.',
+          latencyMs,
+          details: {
+            instrument: instrumentKey,
+            lastPrice: lastPrice !== null ? `₹${lastPrice}` : 'Quote active',
+            broker: 'Upstox',
+            feedStatus: 'Authenticated & Streaming',
+          },
+        };
+      } else {
+        const errorMsg =
+          data?.errors?.[0]?.message ||
+          data?.message ||
+          'Upstox API responded with success status but no quote data was returned for instrument.';
+
+        return {
+          success: false,
+          status: 'CONNECTION_FAILED',
+          message: 'Upstox API returned an empty or invalid quote payload.',
+          latencyMs,
+          error: errorMsg,
+        };
+      }
+    } else if (res.status === 401) {
+      let details = '';
+      try {
+        const errJson = await res.json();
+        details = errJson?.errors?.[0]?.message || errJson?.message || '';
+      } catch {}
+
       return {
         success: false,
         status: 'CONNECTION_FAILED',
-        message: 'Credential/session requires renewal. Upstox Access Token has expired or is invalid.',
+        message: 'Invalid or unauthorized access token. Check your Upstox Analytics Token or OAuth access token.',
         latencyMs,
-        error: 'HTTP 401/403 Unauthorized: Session token expired',
+        error: details ? `HTTP 401 Unauthorized: ${details}` : 'HTTP 401 Unauthorized: Invalid or revoked token',
+      };
+    } else if (res.status === 403) {
+      let details = '';
+      try {
+        const errJson = await res.json();
+        details = errJson?.errors?.[0]?.message || errJson?.message || '';
+      } catch {}
+
+      return {
+        success: false,
+        status: 'CONNECTION_FAILED',
+        message: 'Access forbidden. Verify API key permissions or token scopes in the Upstox Developer Console.',
+        latencyMs,
+        error: details ? `HTTP 403 Forbidden: ${details}` : 'HTTP 403 Forbidden: Access denied or insufficient scope',
+      };
+    } else if (res.status === 429) {
+      return {
+        success: false,
+        status: 'CONNECTION_FAILED',
+        message: 'Upstox API rate limit reached. Please retry after cooldown.',
+        latencyMs,
+        error: 'HTTP 429 Too Many Requests: Rate limit exceeded',
+      };
+    } else if (res.status === 400) {
+      let details = '';
+      try {
+        const errJson = await res.json();
+        details = errJson?.errors?.[0]?.message || errJson?.message || '';
+      } catch {}
+
+      return {
+        success: false,
+        status: 'CONNECTION_FAILED',
+        message: 'Invalid request format or instrument key.',
+        latencyMs,
+        error: details ? `HTTP 400 Bad Request: ${details}` : 'HTTP 400 Bad Request: Invalid instrument key or query parameters',
       };
     } else {
       return {
@@ -173,12 +252,15 @@ export async function testUpstoxConnection(
       };
     }
   } catch (err: any) {
+    const isTimeout = err.name === 'AbortError' || err.message?.toLowerCase().includes('timeout');
     return {
       success: false,
       status: 'CONNECTION_FAILED',
-      message: 'Unable to reach Upstox API gateway.',
+      message: isTimeout
+        ? 'Connection timed out while contacting Upstox API gateway (5s limit).'
+        : 'Unable to reach Upstox API gateway.',
       latencyMs: Date.now() - start,
-      error: err.name === 'AbortError' ? 'Connection timed out after 5s' : err.message || 'Network error',
+      error: isTimeout ? 'Connection timed out after 5s' : err.message || 'Network error',
     };
   }
 }
@@ -275,6 +357,9 @@ export async function testAIProviderConnection(
 
     if (provider === 'google') {
       testUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey.trim())}`;
+    } else if (provider === 'groq') {
+      testUrl = 'https://api.groq.com/openai/v1/models';
+      headers = { Authorization: `Bearer ${apiKey.trim()}` };
     } else if (provider === 'openai') {
       testUrl = 'https://api.openai.com/v1/models';
       headers = { Authorization: `Bearer ${apiKey.trim()}` };

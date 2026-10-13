@@ -194,6 +194,41 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Automatically create a document verification task for the customer's assigned staff
+    try {
+      let assignedEmpId: string | null = null;
+      if (customerId) {
+        const cust = await prisma.customer.findUnique({
+          where: { id: customerId },
+          select: { assignedEmployeeId: true },
+        });
+        assignedEmpId = cust?.assignedEmployeeId || null;
+      }
+      if (!assignedEmpId) {
+        const activeEmp = await prisma.employee.findFirst({
+          where: { status: 'ACTIVE' },
+          select: { id: true },
+        });
+        assignedEmpId = activeEmp?.id || null;
+      }
+
+      if (assignedEmpId) {
+        await prisma.task.create({
+          data: {
+            title: `Verify Document: ${document.title} (${document.documentType})`,
+            description: `New customer document uploaded for verification (${document.documentType}). Review in document vault.`,
+            customerId: customerId || undefined,
+            assignedEmployeeId: assignedEmpId,
+            priority: 'HIGH',
+            status: 'PENDING',
+            dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          },
+        });
+      }
+    } catch (taskErr) {
+      console.warn('Could not auto-create document verification task:', taskErr);
+    }
+
     await logActivity({
       actorUserId: user.id,
       actorRole: user.role,

@@ -13,6 +13,8 @@ import {
   TrendingUp,
   AlertCircle,
   ArrowRight,
+  CheckSquare,
+  Sparkles,
 } from 'lucide-react';
 
 export default async function AdminDashboardPage() {
@@ -67,6 +69,11 @@ export default async function AdminDashboardPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Link href="/admin/tasks">
+            <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-950/80 text-cyan-300 border border-cyan-800 flex items-center gap-1.5 hover:bg-cyan-900/60 transition-colors">
+              <CheckSquare className="w-3.5 h-3.5" /> Central Tasks
+            </span>
+          </Link>
           <Link href="/admin/signals">
             <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-950/80 text-blue-300 border border-blue-800 flex items-center gap-1.5 hover:bg-blue-900/60 transition-colors">
               Signals Desk <ArrowRight className="w-3.5 h-3.5" />
@@ -86,7 +93,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* 2. Key Business Metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         <Card className="p-4 bg-[#111927]">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase text-slate-400">Total Users</span>
@@ -108,7 +115,9 @@ export default async function AdminDashboardPage() {
             </span>
           </div>
           <div className="mt-2 text-2xl font-bold text-white">{totalLeads}</div>
-          <div className="mt-1 text-[11px] text-slate-400">Total pipeline records</div>
+          <div className="mt-1 text-[11px] text-slate-400">
+            <Link href="/admin/crm" className="text-purple-400 hover:underline">Pipeline Desk →</Link>
+          </div>
         </Card>
 
         <Card className="p-4 bg-[#111927]">
@@ -126,15 +135,57 @@ export default async function AdminDashboardPage() {
 
         <Card className="p-4 bg-[#111927]">
           <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase text-slate-400">Open Tasks</span>
+            <span className="p-2 rounded-xl bg-cyan-950 text-cyan-400">
+              <CheckSquare className="w-4 h-4" />
+            </span>
+          </div>
+          <div className="mt-2 text-2xl font-bold text-white">{totalTasks}</div>
+          <div className="mt-1 text-[11px] text-cyan-400 font-medium">
+            <Link href="/admin/tasks" className="hover:underline">Central Task Board →</Link>
+          </div>
+        </Card>
+
+        <Card className="p-4 bg-[#111927]">
+          <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase text-slate-400">Audit Logs</span>
             <span className="p-2 rounded-xl bg-amber-950 text-amber-400">
               <ScrollText className="w-4 h-4" />
             </span>
           </div>
           <div className="mt-2 text-2xl font-bold text-white">{auditLogsCount}</div>
-          <div className="mt-1 text-[11px] text-slate-400">Recorded activity events</div>
+          <div className="mt-1 text-[11px] text-slate-400">
+            <Link href="/admin/audit-logs" className="text-amber-400 hover:underline">Security Logs →</Link>
+          </div>
         </Card>
       </div>
+
+      {/* 3. Executive AI Intelligence Banner */}
+      <Card className="p-4 bg-gradient-to-r from-blue-950/40 via-purple-950/30 to-slate-900 border-blue-900/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <div className="p-2.5 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/30">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-white">Unified AI Business Intelligence &amp; Operations Copilot</h3>
+            <p className="text-xs text-slate-300 mt-0.5">
+              Multi-model neural core (Groq Llama 3.3, Gemini 2.5, OpenAI) active with organization-wide governance, automated lead triage, and staff workload dispatch.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link href="/admin/tasks">
+            <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-950/80 text-cyan-300 border border-cyan-800 flex items-center gap-1.5 hover:bg-cyan-900 transition-colors">
+              <CheckSquare className="w-3.5 h-3.5" /> Manage Tasks
+            </span>
+          </Link>
+          <Link href="/admin/crm">
+            <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-950/80 text-purple-300 border border-purple-800 flex items-center gap-1.5 hover:bg-purple-900 transition-colors">
+              Lead Allocation <ArrowRight className="w-3.5 h-3.5" />
+            </span>
+          </Link>
+        </div>
+      </Card>
 
       {/* 3. Product Application Volume Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

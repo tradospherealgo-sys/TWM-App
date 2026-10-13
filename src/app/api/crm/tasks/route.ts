@@ -43,6 +43,11 @@ export async function GET(request: NextRequest) {
 
     if (user.role === 'EMPLOYEE' && user.employeeProfile) {
       whereClause.assignedEmployeeId = user.employeeProfile.id;
+    } else if (user.role === 'ADMIN') {
+      const employeeId = searchParams.get('employeeId');
+      if (employeeId) {
+        whereClause.assignedEmployeeId = employeeId;
+      }
     }
 
     if (status) {

@@ -10,11 +10,13 @@ import { TradosphereLogo } from '@/components/ui/TradosphereLogo';
 
 interface ClientHeaderProps {
   userName?: string;
+  userRole?: string;
   unreadNotificationsCount?: number;
 }
 
 export function ClientHeader({
   userName = 'Client',
+  userRole = 'CLIENT',
   unreadNotificationsCount = 0,
 }: ClientHeaderProps) {
   const router = useRouter();
@@ -41,6 +43,26 @@ export function ClientHeader({
         <div className="flex items-center gap-2">
           {/* Notification Center */}
           <NotificationCenter initialUnreadCount={unreadNotificationsCount} />
+
+          {/* Quick Staff Return Badge */}
+          {userRole === 'ADMIN' && (
+            <Link
+              href="/admin"
+              className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-red-950 text-red-300 border border-red-800 hover:bg-red-900 transition-colors"
+              title="Return to Admin Control Center"
+            >
+              Admin OS
+            </Link>
+          )}
+          {userRole === 'EMPLOYEE' && (
+            <Link
+              href="/employee"
+              className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900 transition-colors"
+              title="Return to Staff Desk"
+            >
+              Staff Desk
+            </Link>
+          )}
 
           {/* User profile / Logout */}
           <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
